@@ -6,7 +6,7 @@ import http from "http";
 import WebSocket, { WebSocketServer } from "ws";
 import cookieParser from "cookie-parser";
 import { errorHandler } from './middleware/error.middleware';
-
+import AuthRouter from './router/auth.route';
 const app=express();
 app.use(express.json());
 app.use(cookieParser());
@@ -22,7 +22,7 @@ app.get("/",(req,res)=>{
         message:"Hello Welcome to Adaptive Learning" 
     })
 })
-
+app.use("/api/auth",AuthRouter);
 app.use(errorHandler);
 
 

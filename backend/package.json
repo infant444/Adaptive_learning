@@ -10,8 +10,9 @@
     "start": "cd src && nodemon server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-   "dependencies": {
+  "dependencies": {
     "@prisma/client": "^5.7.1",
+    "@types/nodemailer": "^7.0.9",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -19,6 +20,8 @@
     "express": "^5.2.1",
     "express-async-handler": "^1.2.0",
     "jsonwebtoken": "^9.0.3",
+    "mailgen": "^2.0.32",
+    "nodemailer": "^8.0.0",
     "nodemon": "^3.1.11",
     "openai": "^6.16.0",
     "postgres": "^3.4.7",
