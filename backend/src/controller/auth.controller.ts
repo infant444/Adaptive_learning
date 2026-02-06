@@ -65,6 +65,14 @@ export class AuthController {
                 next({ status: 400, message: "Invalid credentials" });
                 return;
             }
+            const userX = await prisma.user.update({
+                where: {
+                    id: user.id
+                },
+                data: {
+                    isActive: false
+                }
+            });
             res.send(generateUserToken(user))
         } catch (err) {
             next(err)
@@ -73,7 +81,7 @@ export class AuthController {
     // To verify by otp
     static async verifyUser(req: Request, res: Response, next: NextFunction) {
         try {
-            const { email, token,code } = req.body;
+            const { email, token, code } = req.body;
             if (!email) {
                 next({ status: 400, message: "Required fields missing" });
             }
@@ -82,9 +90,9 @@ export class AuthController {
                 next({ status: 400, message: "User not exists!" });
                 return;
             }
-            if(verifyMailToken(token) !== code){
+            if (verifyMailToken(token) !== code) {
                 next({ status: 400, message: "Invalid code!" });
-                
+
             }
             const updateUser = await prisma.user.update({
                 where: { email },
@@ -107,11 +115,11 @@ export class AuthController {
         }
     }
     // Send opt for a forgot Password
-    static async forgotPasswordSendMail(req: Request, res: Response, next: NextFunction){
-        try{
+    static async forgotPasswordSendMail(req: Request, res: Response, next: NextFunction) {
+        try {
             const { email } = req.body;
-            const secureCode=generateOTP();
-             const user = await prisma.user.findUnique({ where: { email } });
+            const secureCode = generateOTP();
+            const user = await prisma.user.findUnique({ where: { email } });
             if (!user) {
                 next({ status: 400, message: "User not exists!" });
                 return;
@@ -121,64 +129,81 @@ export class AuthController {
                 next({ status: 500, message: "Error in sending mail" });
             }
             res.json({ message: "OTP Send Successfully!", email: email, token: generateMailToken(email, secureCode) })
-        }catch(err){
+        } catch (err) {
             next(err)
         }
     }
     // In forgot password to reset a password
-    static async forgotResetPassword(req: Request, res: Response, next: NextFunction){
-        try{
-            const { email, token, password,code } = req.body;
+    static async forgotResetPassword(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { email, token, password, code } = req.body;
             const user = await prisma.user.findUnique({ where: { email } });
             if (!user) {
                 next({ status: 400, message: "User not exists!" });
                 return;
             }
-            if(verifyMailToken(token) !== code){
+            if (verifyMailToken(token) !== code) {
                 next({ status: 400, message: "Invalid code!" });
             }
             const hashedPassword = await bcrypt.hash(password, 10);
             const updatedUser = await prisma.user.update({
-                where:{email},
-                data:{password:hashedPassword}
+                where: { email },
+                data: { password: hashedPassword }
             })
-            res.json({message:"Password reset successfully!"})
-        }catch(err){
+            res.json({ message: "Password reset successfully!" })
+        } catch (err) {
             next(err)
         }
     }
     // 🔐 UPDATE PASSWORD
     static async updatePassword(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { id, password, new_password } = req.body;
+        try {
+            const { id, password, new_password } = req.body;
 
-      if (!id || !password || !new_password) {
-        return next({ status: 400, message: "Missing fields" });
-      }
+            if (!id || !password || !new_password) {
+                return next({ status: 400, message: "Missing fields" });
+            }
 
-      const user = await prisma.user.findUnique({ where: { id: id } });
+            const user = await prisma.user.findUnique({ where: { id: id } });
 
-      if (!user) {
-        return next({ status: 404, message: "User not found" });
-      }
+            if (!user) {
+                return next({ status: 404, message: "User not found" });
+            }
 
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        return next({ status: 401, message: "Old password mismatch" });
-      }
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!isPasswordValid) {
+                return next({ status: 401, message: "Old password mismatch" });
+            }
 
-      const hashedPassword = await bcrypt.hash(new_password, 10);
+            const hashedPassword = await bcrypt.hash(new_password, 10);
 
-      await prisma.user.update({
-        where: { id: id },
-        data: { password: hashedPassword}
-      });
+            await prisma.user.update({
+                where: { id: id },
+                data: { password: hashedPassword }
+            });
 
-      res.json({ status: 200, message: "Password updated successfully" });
-    } catch (error) {
-      next(error);
+            res.json({ status: 200, message: "Password updated successfully" });
+        } catch (error) {
+            next(error);
+        }
     }
-  }
+    //Logout
+    static async logout(req: any, res: Response, next: NextFunction) {
+        try {
+            const userId = req.user.id;
+            const user = await prisma.user.update({
+                where: {
+                    id: userId
+                },
+                data: {
+                    isActive: false
+                }
+            });
+            res.send(user)
+        } catch (err) {
+            next(err)
+        }
+    }
 }
 // Generate A token for a User
 const generateUserToken = (user: any) => {
@@ -200,9 +225,9 @@ const generateUserToken = (user: any) => {
         collegeName: user.collegeName,
         role: user.role,
         verify: user.verify,
-        token
-
+        token:token
     };
+
 }
 // Generate A token for a Email
 const generateMailToken = (email: string, secureCode: string) => {
