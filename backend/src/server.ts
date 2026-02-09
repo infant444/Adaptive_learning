@@ -7,6 +7,7 @@ import WebSocket, { WebSocketServer } from "ws";
 import cookieParser from "cookie-parser";
 import { errorHandler } from './middleware/error.middleware';
 import AuthRouter from './router/auth.route';
+import ExamRouter from './router/exam.route';
 const app=express();
 app.use(express.json());
 app.use(cookieParser());
@@ -23,6 +24,7 @@ app.get("/",(req,res)=>{
     })
 })
 app.use("/api/auth",AuthRouter);
+app.use("/api/exam",ExamRouter)
 app.use(errorHandler);
 
 
