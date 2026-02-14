@@ -246,7 +246,7 @@ export class QuestionServices {
     return questions;
   }
 
-  static async generateDescriptiveQuiz(subject: string, difficulty: string, count: number, description: string, file: any) {
+  static async generateDescriptiveQuestion(subject: string, difficulty: string, count: number, description: string, file: any) {
     const uploadedFile = await fileManager.uploadFile(file.buffer, {
       mimeType: file.mimetype,
       displayName: file.originalname

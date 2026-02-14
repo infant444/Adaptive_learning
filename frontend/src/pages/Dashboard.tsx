@@ -1,17 +1,12 @@
 import { useAuth } from '../context/AuthContext';
-import { StudentDashboard } from './StudentDashboard';
-import { FacultyDashboard } from './FacultyDashboard';
+import { Navigate } from 'react-router-dom';
 
 export const Dashboard = () => {
   const { user } = useAuth();
 
-  if (user?.role === 'student') {
-    return <StudentDashboard />;
+  if (user?.role === 'teacher' || user?.role === 'faculty') {
+    return <Navigate to="/faculty/dashboard" replace />;
   }
 
-  if (user?.role === 'faculty') {
-    return <FacultyDashboard />;
-  }
-
-  return <StudentDashboard />;
+  return <Navigate to="/student/dashboard" replace />;
 };

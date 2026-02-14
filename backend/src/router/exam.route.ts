@@ -6,5 +6,5 @@ import authMiddleware from "../middleware/auth.middleware";
 const router = Router();
 router.use(authMiddleware)
 
-router.post("/generate",ExamController.uploadFile,asyncHandler(ExamController.generateQuestion))
+router.post("/generate",ExamController.uploadFile,asyncHandler(ExamController.generateQuizQuestion))
 export default router;
