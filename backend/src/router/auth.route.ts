@@ -1,6 +1,7 @@
 import { Router } from "express";
 import asyncHandler from "express-async-handler";
 import { AuthController } from "../controller/auth.controller";
+import authMiddleware from "../middleware/auth.middleware";
 const route = Router();
 
 route.post("/register",asyncHandler(AuthController.signup));
@@ -9,4 +10,5 @@ route.post("/otp/forgot-password", asyncHandler(AuthController.forgotPasswordSen
 route.put("/verify", asyncHandler(AuthController.verifyUser));
 route.put("/forgot-password",asyncHandler(AuthController.forgotResetPassword))
 route.put("/update-password", asyncHandler(AuthController.updatePassword))
+route.put("/logout",authMiddleware ,asyncHandler(AuthController.logout))
 export default route

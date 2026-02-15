@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileQuestion, Upload, Settings, LogOut, Menu, X, Bell, Search } from 'lucide-react';
+import { LayoutDashboard, FileQuestion, Upload, Settings, LogOut, Menu, X, Bell,  Users } from 'lucide-react';
 
 export const StudentLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const menuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Quiz', path: '/student/quiz', icon: FileQuestion },
     { name: 'Project Submit', path: '/student/project-submit', icon: Upload },
+    {name:'Channel',path:'/student/channel',icon:Users},
     { name: 'Settings', path: '/student/settings', icon: Settings },
   ];
 
@@ -23,12 +24,22 @@ export const StudentLayout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 fixed h-full z-20`}>
-        <div className="flex items-center justify-between p-4 border-b">
-          {sidebarOpen && <h1 className="text-xl font-bold text-blue-600">Student Portal</h1>}
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-lg">
-            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      <aside className={`${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0 w-64 bg-white shadow-lg transition-transform duration-300 fixed h-full z-40 lg:z-20`}>
+        <div className="flex w-full items-center justify-between p-4 pt-5 pb-6 border-b border-gray-300">
+          <h1 className="text-xl text-center font-bold text-blue-600">RiBuildIt</h1>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-lg lg:hidden">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -47,7 +58,7 @@ export const StudentLayout = () => {
                 }`}
               >
                 <Icon className="w-5 h-5" />
-                {sidebarOpen && <span className="ml-3">{item.name}</span>}
+                <span className="ml-3">{item.name}</span>
               </Link>
             );
           })}
@@ -59,26 +70,22 @@ export const StudentLayout = () => {
             className="flex items-center w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
             <LogOut className="w-5 h-5" />
-            {sidebarOpen && <span className="ml-3">Logout</span>}
+            <span className="ml-3">Logout</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
+      <div className="flex-1 lg:ml-64 transition-all duration-300">
         {/* Top Bar */}
         <header className="bg-white shadow-sm sticky top-0 z-10">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center flex-1 max-w-2xl">
-              <div className="relative w-full">
-                <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
+          <div className="flex items-center justify-between lg:justify-end px-6 py-4">
+            <button 
+              onClick={() => setSidebarOpen(true)} 
+              className="p-2 hover:bg-gray-100 rounded-lg lg:hidden"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
 
             <div className="flex items-center space-x-4 ml-4">
               <button className="relative p-2 hover:bg-gray-100 rounded-lg">

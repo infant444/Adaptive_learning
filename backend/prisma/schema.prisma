@@ -46,6 +46,7 @@ model User {
   assignedTo       ExamAssignment[] @relation("assigned_to")
   assignedBy       ExamAssignment[] @relation("assigned_by")
   facultyChannels  Channel[]        @relation("faculty_channels")
+  sentDiscussions  Discussion[]     @relation("Sender")
 
   @@map("users")
 }
@@ -55,12 +56,14 @@ model Channel {
   name        String   @map("name")
   description String?  @map("description")
   facultyId   String?  @map("faculty_id")
-  teamMembers String[] @map("team_members")
+  teamMembers String[] @default([]) @map("team_members")
+  isPrivate   Boolean  @default(false) @map("is_private")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  faculty User? @relation("faculty_channels", fields: [facultyId], references: [id])
-  exams   Exam[]
+  faculty     User?        @relation("faculty_channels", fields: [facultyId], references: [id])
+  exams       Exam[]
+  discussions Discussion[]
 
   @@map("channels")
 }
@@ -121,4 +124,19 @@ model ExamAssignment {
   assignedBy User @relation("assigned_by", fields: [assignedById], references: [id])
 
   @@map("exam_assignments")
+}
+
+model Discussion {
+  id        String   @id @default(uuid()) @map("id")
+  message   String   @map("message")
+  sendBy    String   @map("send_by")
+  channelId String   @map("channel_id")
+  sendAt    DateTime @default(now()) @map("send_at")
+
+  sendUser  User?     @relation("Sender", fields: [sendBy], references: [id])
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([sendBy])
+  @@index([sendAt])
 }

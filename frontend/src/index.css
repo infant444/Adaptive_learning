@@ -9,3 +9,7 @@
   --color-blue-600: #2563eb;
   --color-white: #ffffff;
 }
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

@@ -16,7 +16,6 @@ export const Signup = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -25,14 +24,11 @@ export const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     try {
       const response = await api.post('/auth/register', formData);
       navigate('/verify-otp', { state: { email: formData.email, token: response.data.token } });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Signup failed');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -179,10 +175,9 @@ export const Signup = () => {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-500 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-purple-500 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200"
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              Create Account
             </button>
 
             <div className="text-center">
