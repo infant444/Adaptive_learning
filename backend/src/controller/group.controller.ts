@@ -160,9 +160,22 @@ export class GroupController {
             next(err);
         }
     }
-    static async updateGroup(req: Request, res: Response, next: NextFunction) {
+    static async updateGroup(req: any, res: Response, next: NextFunction) {
         try {
             const id = req.params.id as string;
+            const facultyId = req.user.id;
+
+            const existing = await prisma.channel.findFirst({
+                where: {
+                    id: id,
+                    facultyId: facultyId
+                }
+            });
+
+            if (!existing) {
+                return next({ status: 404, message: "Channel not found or unauthorized access" });
+            }
+
             const { name, description, isPrivate } = req.body;
             const group = await prisma.channel.update({
                 where: {
@@ -179,9 +192,21 @@ export class GroupController {
             next(err)
         }
     }
-    static async deleteGroup(req: Request, res: Response, next: NextFunction) {
+    static async deleteGroup(req: any, res: Response, next: NextFunction) {
         try {
             const id = req.params.id as string;
+             const facultyId = req.user.id;
+
+            const existing = await prisma.channel.findFirst({
+                where: {
+                    id: id,
+                    facultyId: facultyId
+                }
+            });
+
+            if (!existing) {
+                return next({ status: 404, message: "Channel not found or unauthorized access" });
+            }
             await prisma.channel.delete({
                 where: {
                     id: id

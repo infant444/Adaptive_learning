@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { io, Socket } from "socket.io-client";
-import { Channel, Discussion } from "../lib/api";
+import { Channel, Discussion, Exam } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import * as XLSX from "xlsx";
 import {
@@ -28,7 +28,7 @@ export const ChannelDetail = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [channel, setChannel] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("discussion");
+  const [activeTab, setActiveTab] = useState("admin");
   const [host, setHost] = useState<any>(null);
   const location = useLocation();
   const [showJoinPopup, setShowJoinPopup] = useState(false);
@@ -39,10 +39,14 @@ export const ChannelDetail = () => {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
+  const [exams, setExams] = useState<any>(null);
   useEffect(() => {
     fetchChannel();
     if (activeTab === "discussion") {
       fetchMessages();
+    }
+    if (activeTab == "exams") {
+      fetchExams();
     }
   }, [id, activeTab]);
 
@@ -128,7 +132,15 @@ export const ChannelDetail = () => {
       console.error(err);
     }
   };
-
+  const fetchExams = async () => {
+    try {
+      const response = await Exam.getChannel(id!);
+      setExams(response.data);
+      console.log(response.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const handleFileUpload = async (file: File) => {
     try {
       const fileName = file.name.toLowerCase();
@@ -191,7 +203,10 @@ export const ChannelDetail = () => {
   // const isNotStudentMember=!channel?.teamMembers?.includes(user?.id) && user?.role=='student'
 
   return (
-    <div className="min-h-screen bg-gray-50 scrollbar-hide" style={{ scrollbarWidth: "none", msOverflowStyle: "none"} }>
+    <div
+      className="min-h-screen bg-gray-50 scrollbar-hide"
+      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+    >
       <nav className="bg-white shadow-sm border-b border-gray-400">
         <div className="max-w-7xl px-4 sm:px-6 ">
           <div className="flex justify-start items-center h-16">
@@ -266,6 +281,19 @@ export const ChannelDetail = () => {
           <div className="border-b overflow-x-auto">
             <div className="flex gap-2 sm:gap-4 px-4 sm:px-6 min-w-max">
               <button
+                onClick={() => setActiveTab("admin")}
+                className={`py-3 sm:py-4 px-2 border-b-2 font-medium text-sm sm:text-base whitespace-nowrap ${
+                  activeTab === "admin"
+                    ? "border-purple-600 text-purple-600"
+                    : "border-transparent text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <WalletCardsIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Details
+                </div>
+              </button>
+              <button
                 onClick={() => setActiveTab("discussion")}
                 className={`py-3 sm:py-4 px-2 border-b-2 font-medium text-sm sm:text-base whitespace-nowrap ${
                   activeTab === "discussion"
@@ -315,19 +343,6 @@ export const ChannelDetail = () => {
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                   Students
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab("admin")}
-                className={`py-3 sm:py-4 px-2 border-b-2 font-medium text-sm sm:text-base whitespace-nowrap ${
-                  activeTab === "admin"
-                    ? "border-purple-600 text-purple-600"
-                    : "border-transparent text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <WalletCardsIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Details
                 </div>
               </button>
             </div>
@@ -464,9 +479,62 @@ export const ChannelDetail = () => {
                     </button>
                   )}
                 </div>
-                <p className="text-gray-500 text-sm sm:text-base">
-                  Exam list will be displayed here
-                </p>
+                {exams && exams.length > 0 ? (
+                  <div className="grid gap-4">
+                    {exams.map((exam: any) => (
+                      <div
+                        key={exam.id}
+                        className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition"
+                      >
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                          <div className="flex-1 w-full">
+                            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 break-words">
+                              {exam.title}
+                            </h3>
+                            <p className="text-gray-600 mt-1 text-sm sm:text-base">
+                              {exam.domain}
+                            </p>
+                            <div className="flex flex-wrap gap-3 sm:gap-4 mt-3 text-xs sm:text-sm text-gray-500">
+                              <span>{exam.durationMinutes} min</span>
+                              <span>{exam.questionCount} questions</span>
+                              <span className="capitalize">
+                                {exam.testType}
+                              </span>
+                              <span className="capitalize text-red-500">
+                                {exam.endAt != null && exam.endAt < new Date()
+                                  ? "expire"
+                                  : ""}
+                              </span>
+                            </div>
+                            {exam.isStart && (
+                              <div className="mt-2 text-xs sm:text-sm text-gray-500">
+                                Start: {new Date(exam.startAt).toLocaleString()}
+                              </div>
+                            )}
+                          </div>
+                          {(!exam.isStart ||
+                            (exam.isStart &&
+                              new Date(exam.startAt) <= new Date())) &&
+                            (!exam.endAt ||
+                              new Date(exam.endAt) > new Date()) && (
+                              <button
+                                onClick={() =>
+                                  navigate(`/student/exam/${exam.id}`)
+                                }
+                                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm sm:text-base"
+                              >
+                                Start Exam
+                              </button>
+                            )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm sm:text-base text-center py-8">
+                    No exams available
+                  </p>
+                )}
               </div>
             )}
 
@@ -497,7 +565,7 @@ export const ChannelDetail = () => {
                     </h2>
                   </div>
                   <div className="w-full bg-white/50 shadow rounded-lg p-2 text-justify text-xl">
-                    {channel.description}
+                    {channel?.description}
                   </div>
                 </div>
                 <div>
@@ -507,7 +575,7 @@ export const ChannelDetail = () => {
                     </h2>
                   </div>
                   <div className="w-full bg-white/50 shadow rounded-lg p-2 text-justify text-xl">
-                    {new Date(channel.createdAt).toLocaleDateString("en-GB", {
+                    {new Date(channel?.createdAt).toLocaleDateString("en-GB", {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
@@ -533,7 +601,7 @@ export const ChannelDetail = () => {
                           <p className="text-gray-700 text-base sm:text-xl break-all">
                             {host?.email}
                           </p>
-                          <div className="flex flex-col sm:flex-row gap-2 text-sm sm:text-xl">
+                          <div className="flex flex-col gap-2 text-sm sm:text-xl">
                             <p className="break-words">
                               <span className="font-semibold">University:</span>{" "}
                               {host?.university}

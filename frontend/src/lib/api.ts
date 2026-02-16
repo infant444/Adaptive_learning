@@ -75,4 +75,18 @@ export const Discussion = {
   sendMessage: (channelId: string, message: string) => api.post("/discussion/" + channelId, { message })
 }
 
+export const Exam = {
+  generate: (data: FormData) => api.post("/exam/generate", data),
+  create: (data: any) => api.post("/exam/create", data),
+  getFaculty: () => api.get("/exam/faculty"),
+  getMy: () => api.get("/exam/my"),
+  updateDetail: (examId: string, data: any) => api.put("/exam/update/detail/" + examId, data),
+  updateQuestion: (examId: string, data: any) => api.put("/exam/update/question/" + examId, data),
+  delete: (examId: string) => api.delete("/exam/delete/" + examId),
+  getById: (examId: string) => api.get("/exam/detail/" + examId),
+  explore: () => api.get("/exam/explore"),
+  getChannel: (channelId: string) => api.get("/exam/channel/" + channelId),
+  startExam:(examId:string)=>api.get("/exam/start/"+examId)
+}
+
 export default api;

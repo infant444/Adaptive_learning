@@ -12,7 +12,7 @@ export const FacultyLayout = () => {
   const menuItems = [
     { name: 'Dashboard', path: '/faculty/dashboard', icon: LayoutDashboard },
     { name: 'Channels', path: '/faculty/channels', icon: Users },
-    { name: 'Quiz', path: '/faculty/quiz', icon: FileQuestion },
+    { name: 'Exam', path: '/faculty/exams', icon: FileQuestion },
     { name: 'Projects', path: '/faculty/projects', icon: FolderOpen },
     { name: 'Settings', path: '/faculty/settings', icon: Settings },
   ];

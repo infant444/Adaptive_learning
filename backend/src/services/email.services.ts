@@ -42,8 +42,63 @@ export class EmailServices {
         };
         return mailSenderBulk(emailBody, `Invitation to Join ${group} Channel`, email);
     }
-}
+    static sendExamInvite(quizTitle: string, examId: string, email: string[], channel: string, isStart: boolean, startAt: string,domain:string) {
+        const startInfo = isStart 
+            ? `The exam will start on ${new Date(startAt).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}.`
+            : 'The exam is available now and you can start anytime.';
 
+        const emailBody = {
+            body: {
+                greeting: "Dear Student,",
+                intro: [
+                    `You have been invited to attempt the exam "${quizTitle}" in the ${channel} channel.`,
+                    startInfo
+                ],
+                action: {
+                    instructions: isStart 
+                        ? "The exam will be accessible at the scheduled time. Click below to view details:"
+                        : "Click the button below to start the exam:",
+                    button: {
+                        color: "#2F80ED",
+                        text: isStart ? "View Exam Details" : "Start Exam Now",
+                        link: `${domain}/attend-exam/${examId}`
+                    }
+                },
+                table: {
+                    data: [
+                        {
+                            item: 'Exam Title',
+                            description: quizTitle
+                        },
+                        {
+                            item: 'Domain',
+                            description: domain
+                        },
+                        {
+                            item: 'Channel',
+                            description: channel
+                        },
+                        {
+                            item: 'Status',
+                            description: isStart ? `Scheduled for ${new Date(startAt).toLocaleString()}` : 'Available Now'
+                        }
+                    ]
+                },
+                outro: [
+                    "Important Instructions:",
+                    "• Ensure stable internet connection",
+                    "• Read all instructions carefully before starting",
+                    "• Submit your answers before the deadline",
+                    "",
+                    "Good luck with your exam!"
+                ]
+            },
+            signature: `Best Regards,\n${channel} Team\nSancilo Platform`
+        };
+        return mailSenderBulk(emailBody, `Exam Invitation: ${quizTitle}`, email);
+    }
+}
+// email Send process
 const mailSender = async (template: any, subject: string, email: string): Promise<Boolean> => {
     let transporter = nodeMailer.createTransport(MailConfig);
     const mail = mailGenerator.generate(template);

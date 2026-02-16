@@ -216,6 +216,100 @@ Format:
 
 Return response in valid JSON format only.
 `;
+
+const generateExamInstructionsPrompt = (examDetails: {
+  questionCount: number;
+  testType: string;
+  durationMinutes?: number;
+  domain?: string;
+  difficulty?: string;
+}) => `
+Generate comprehensive exam instructions for students based on the following exam details:
+
+Exam Details:
+- Total Questions: ${examDetails.questionCount}
+- Test Type: ${examDetails.testType}
+- Duration: ${examDetails.durationMinutes ? `${examDetails.durationMinutes} minutes` : 'No time limit'}
+- Domain: ${examDetails.domain || 'General'}
+- Difficulty: ${examDetails.difficulty || 'Medium'}
+
+Generate clear, professional instructions that include:
+
+1. GENERAL INSTRUCTIONS:
+   - How to navigate through questions
+   - How to submit answers
+   - What happens if time runs out (if timed)
+   - Can students review/change answers
+   - Auto-save functionality
+
+2. EXAM-SPECIFIC GUIDELINES:
+   ${examDetails.testType === 'quiz' ? `
+   - Each question has only one correct answer
+   - Select the best option from given choices
+   - No negative marking
+   - Unanswered questions will be marked as incorrect
+   ` : examDetails.testType === 'coding' ? `
+   - Write clean, well-commented code
+   - Test your code before submission
+   - Follow proper naming conventions
+   - Include edge case handling
+   - Time complexity matters
+   ` : `
+   - Write detailed, well-structured answers
+   - Support your answers with examples
+   - Be clear and concise
+   - Proper formatting will be appreciated
+   - Plagiarism will result in zero marks
+   `}
+
+3. TIME MANAGEMENT:
+   ${examDetails.durationMinutes ? `
+   - Total time: ${examDetails.durationMinutes} minutes
+   - Suggested time per question: ${Math.floor(examDetails.durationMinutes / examDetails.questionCount)} minutes
+   - Timer will be visible throughout
+   - Warning at 5 minutes remaining
+   - Auto-submit when time expires
+   ` : `
+   - No time limit for this exam
+   - Take your time to answer thoughtfully
+   - You can save and return later
+   - Ensure to submit before deadline
+   `}
+
+4. TECHNICAL REQUIREMENTS:
+   - Stable internet connection required
+   - Use updated browser (Chrome/Firefox recommended)
+   - Don't refresh the page during exam
+   - Don't use browser back button
+   - Keep your device charged
+
+5. EXAM RULES:
+   - No external help or resources allowed
+   - Keep your workspace clear
+   - No communication with others
+   - Violation will result in disqualification
+   - All activities are monitored
+
+6. BEFORE YOU START:
+   - Read all instructions carefully
+   - Check your internet connection
+   - Close unnecessary tabs/applications
+   - Have a backup device ready
+   - Note the submission deadline
+
+Return response in valid JSON format:
+{
+  "title": "Exam Instructions",
+  "generalInstructions": ["Instruction 1", "Instruction 2"],
+  "examGuidelines": ["Guideline 1", "Guideline 2"],
+  "timeManagement": ["Time tip 1", "Time tip 2"],
+  "technicalRequirements": ["Requirement 1", "Requirement 2"],
+  "examRules": ["Rule 1", "Rule 2"],
+  "beforeYouStart": ["Checklist item 1", "Checklist item 2"],
+  "importantNotes": ["Note 1", "Note 2"]
+}
+`;
+
 export class QuestionServices {
   static async generateQuiz(subject: string, difficulty: string, count: number, description: string, file: any) {
     const uploadedFile = await fileManager.uploadFile(file.buffer, {
@@ -331,5 +425,29 @@ export class QuestionServices {
     const questions = JSON.parse(cleanJsonString);
 
     return questions;
+  }
+
+  static async generateExamInstructions(examDetails: {
+    questionCount: number;
+    testType: string;
+    durationMinutes?: number;
+    domain?: string;
+    difficulty?: string;
+  }) {
+    const model = genAI.getGenerativeModel({
+      model: "gemini-3-flash-preview"
+    });
+
+    const result = await model.generateContent([
+      {
+        text: generateExamInstructionsPrompt(examDetails)
+      }
+    ]);
+
+    const response = result.response.text();
+    const cleanJsonString = response.trim().replace(/```json/g, '').replace(/```/g, '').trim();
+    const instructions = JSON.parse(cleanJsonString);
+
+    return instructions;
   }
 }

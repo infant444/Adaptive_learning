@@ -70,18 +70,21 @@ model Channel {
 
 model Exam {
   id              String      @id @default(uuid()) @map("id")
-  name            String      @map("name")
+  title            String      @map("title")
   domain          String?     @map("domain")
   questionCount   Int?        @map("question_count")
+  isDuration      Boolean     @default(false)@map("is_duration")
   durationMinutes Int?        @map("duration_minutes")
+  isStart         Boolean     @default(false)@map("is_start")
+  startAt         DateTime?   @map("start_at")
+  endAt           DateTime?   @map("end_at")
   questions       Json        @map("questions")
   testType        TestType    @map("test_type")
   publishType     PublishType @map("publish_type")
   organization    String?     @map("organization")
-  instructions    String?     @map("instructions")
+  instructions    Json?       @map("instructions")
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
-
   createdById String? @map("created_by_id")
   channelId   String? @map("channel_id")
 
@@ -96,14 +99,17 @@ model Exam {
 model Response {
   id            String   @id @default(uuid()) @map("id")
   response      Json     @map("response")
+  duration      Int      @default(0) @map("duration")
+  violations    String[] @default([]) @map("violations")
   responseScore Float?   @map("response_score")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
-
+  isAnalyses    Boolean  @default(false)@map("is_analysis")
+  analyses      Json     @map("analyses")
+  isTerminated  Boolean  @default(false)@map("is_terminated")
   examId    String  @map("exam_id")
   studentId String? @map("student_id")
   facultyId String? @map("faculty_id")
-
   exam    Exam  @relation(fields: [examId], references: [id], onDelete: Cascade)
   student User? @relation("student_responses", fields: [studentId], references: [id])
   faculty User? @relation("faculty_responses", fields: [facultyId], references: [id])
@@ -114,11 +120,9 @@ model Response {
 model ExamAssignment {
   id           String   @id @default(uuid()) @map("id")
   assignedAt   DateTime @default(now()) @map("assigned_at")
-
   examId       String @map("exam_id")
   assignedToId String @map("assigned_to_id")
   assignedById String @map("assigned_by_id")
-
   exam       Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
   assignedTo User @relation("assigned_to", fields: [assignedToId], references: [id])
   assignedBy User @relation("assigned_by", fields: [assignedById], references: [id])

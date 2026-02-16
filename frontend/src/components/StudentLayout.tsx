@@ -11,7 +11,7 @@ export const StudentLayout = () => {
 
   const menuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Quiz', path: '/student/quiz', icon: FileQuestion },
+    { name: 'Exams', path: '/student/Exams', icon: FileQuestion },
     { name: 'Project Submit', path: '/student/project-submit', icon: Upload },
     {name:'Channel',path:'/student/channel',icon:Users},
     { name: 'Settings', path: '/student/settings', icon: Settings },
