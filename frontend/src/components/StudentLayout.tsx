@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileQuestion, Upload, Settings, LogOut, Menu, X, Bell,  Users } from 'lucide-react';
+import { LayoutDashboard, FileQuestion, Upload, Settings, LogOut, Menu, X, Bell,  Users, FileChartLine, Presentation } from 'lucide-react';
 
 export const StudentLayout = () => {
   const { user, logout } = useAuth();
@@ -13,9 +14,11 @@ export const StudentLayout = () => {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Exams', path: '/student/Exams', icon: FileQuestion },
     { name: 'Project Submit', path: '/student/project-submit', icon: Upload },
+    {name:"Analysis",path:"/student/analysis", icon:FileChartLine},
     {name:'Channel',path:'/student/channel',icon:Users},
     { name: 'Settings', path: '/student/settings', icon: Settings },
   ];
+    // {name:"practices",path:'/student/practice',icon:Presentation},
 
   const handleLogout = () => {
     logout();

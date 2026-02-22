@@ -2,8 +2,8 @@
 /* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Exam } from "../../lib/api";
+import { useParams, useNavigate, replace } from "react-router-dom";
+import { Exam, Feedback } from "../../lib/api";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
@@ -97,12 +97,21 @@ export const TakeExam = () => {
   const [violationLog, setViolationLog] = useState<string[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isTerminated, setIsTerminated] = useState(false);
+  const [startTime, setStartTime] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [alreadyAttended, setAlreadyAttended] = useState(false);
+  const [examNotStarted, setExamNotStarted] = useState(false);
+  const [examExpired, setExamExpired] = useState(false);
+  const [loading, setLoading] = useState(true);
   const timerRef = useRef<any>(null);
   const cleanupRef = useRef<any>(null);
   const checkIntervalRef = useRef<any>(null);
   const violationLogRef = useRef<string[]>([]);
-
   useEffect(() => {
     fetchExam();
     return () => {
@@ -117,6 +126,7 @@ export const TakeExam = () => {
   useEffect(() => {
     if (!showInstructions && exam) {
       enterFullscreen();
+      setStartTime(Date.now());
       startTimer();
       cleanupRef.current = setupViolationDetection();
       startFullscreenCheck();
@@ -134,20 +144,47 @@ export const TakeExam = () => {
   const fetchExam = async () => {
     try {
       const res = await Exam.startExam(examId!);
-      setExam(res.data);
+      const examData = res.data;
+      
+      if (examData.hasResponse) {
+        setAlreadyAttended(true);
+        setLoading(false);
+        return;
+      }
+      
+      if (examData.isStart) {
+        const now = new Date().getTime();
+        const startTime = new Date(examData.startAt).getTime();
+        const endTime = new Date(examData.endAt).getTime();
+        
+        if (now < startTime) {
+          setExamNotStarted(true);
+          setLoading(false);
+          return;
+        }
+        
+        if (now > endTime) {
+          setExamExpired(true);
+          setLoading(false);
+          return;
+        }
+      }
+      
+      setExam(examData);
       const parsedQuestions =
-        typeof res.data.questions === "string"
-          ? JSON.parse(res.data.questions)
-          : res.data.questions;
+        typeof examData.questions === "string"
+          ? JSON.parse(examData.questions)
+          : examData.questions;
       const shuffled = [...parsedQuestions].sort(() => Math.random() - 0.5);
       setResponses(
         shuffled.map((q: any) => ({
           ...q,
-          yourAnswer: res.data.testType === "quiz" ? "" : "",
           answer: "",
+          status: "notanswered",
         })),
       );
-      if (res.data.isDuration) setTimeLeft(res.data.durationMinutes * 60);
+      if (examData.isDuration) setTimeLeft(examData.durationMinutes * 60);
+      setLoading(false);
     } catch (error: any) {
       toast.error("Failed to load exam");
       navigate(-1);
@@ -285,7 +322,6 @@ export const TakeExam = () => {
 
   const recordViolation = (type: string) => {
     if (violationLogRef.current.includes(type)) return;
-    console.log(violationLog)
     const newLog = [...violationLogRef.current, type];
     violationLogRef.current = newLog;
     setViolationLog(newLog);
@@ -294,38 +330,62 @@ export const TakeExam = () => {
     toast.error(`Warning: ${type}! (${newViolations}/3)`);
     if (newViolations >= 3) {
       toast.error("Maximum violations reached. Auto-submitting...");
-      setTimeout(() => handleSubmit(), 2000);
+      setTimeout(() => handleViolationSubmit(), 2000);
     }
   };
 
   const handleAnswer = (answer: string) => {
     const updated = [...responses];
-    if (exam.testType === "quiz") {
-      updated[currentQuestion].yourAnswer = answer;
-    } else {
-      updated[currentQuestion].answer = answer;
-    }
+    updated[currentQuestion].answer = answer;
+    updated[currentQuestion].status = "answered";
     setResponses(updated);
   };
-const handleViolationSubmit= async()=>{
-    const allAnswered = responses.every((r) =>
-      exam.testType === "quiz" ? r.yourAnswer : r.answer,
-    );
-     setIsSubmitting(true);
+
+  const handleSkip = () => {
+    const updated = [...responses];
+    updated[currentQuestion].status = "skipped";
+    setResponses(updated);
+    if (currentQuestion < responses.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+    }
+  };
+  const handleViolationSubmit = async () => {
+    setIsSubmitting(true);
     setIsLocked(false);
     if (timerRef.current) clearInterval(timerRef.current);
     if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
     if (cleanupRef.current) cleanupRef.current();
     exitFullscreen();
+    try {
+      const duration = Math.floor((Date.now() - startTime) / 60000);
+      await Exam.submitResponse(examId!, {
+        response: responses,
+        duration,
+        violations: violationLogRef.current,
+        totalScore: exam.totalScore,
+        isTerminated: true,
+        terminatedReason: "Maximum violations reached",
+        questions: responses,
+        testType: exam.testType,
+        durationMinutes: exam.durationMinutes,
+        facultyId: exam.createdById
+      });
+      toast.error("Exam auto-submitted due to violations");
+      setIsTerminated(true);
+    } catch (error) {
+      toast.error("Failed to submit exam");
+    }
+  };
 
-}
   const handleSubmit = async () => {
-    const allAnswered = responses.every((r) =>
-      exam.testType === "quiz" ? r.yourAnswer : r.answer,
+    const unanswered = responses.filter(
+      (r) => r.status === "notanswered" || r.status === "skipped",
     );
-    if (!allAnswered) {
-      toast.error("Please answer all questions before submitting");
-      return;
+    if (unanswered.length > 0) {
+      const confirm = window.confirm(
+        `You have ${unanswered.length} unanswered/skipped questions. Submit anyway?`,
+      );
+      if (!confirm) return;
     }
     setIsSubmitting(true);
     setIsLocked(false);
@@ -334,10 +394,21 @@ const handleViolationSubmit= async()=>{
     if (cleanupRef.current) cleanupRef.current();
     exitFullscreen();
     try {
-      console.log(responses);
-      console.log(violationLog)
+      const duration = Math.floor((Date.now() - startTime) / 60000);
+      await Exam.submitResponse(examId!, {
+        response: responses,
+        duration,
+        violations: violationLogRef.current,
+        totalScore: exam.totalScore,
+        isTerminated: false,
+        terminatedReason: null,
+        questions: responses,
+        testType: exam.testType,
+        durationMinutes: exam.durationMinutes,
+        facultyId: exam.createdById
+      });
       toast.success("Exam submitted successfully");
-      navigate("/student/exams");
+      setIsCompleted(true);
     } catch (error) {
       toast.error("Failed to submit exam");
     }
@@ -349,8 +420,250 @@ const handleViolationSubmit= async()=>{
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  if (!exam) return <div className="p-8 text-center">Loading...</div>;
+  if (loading) {
+    return <div className="p-8 text-center">Loading...</div>;
+  }
 
+  if (alreadyAttended) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-12 h-12 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Already Attended</h1>
+          <p className="text-gray-600 mb-6">You have already completed this exam.</p>
+          <button
+            onClick={() => navigate("/student/exams", { replace: true })}
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+          >
+            Back to Exams
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (examNotStarted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Exam Not Started</h1>
+          <p className="text-gray-600 mb-6">This exam has not started yet. Please check back later.</p>
+          <button
+            onClick={() => navigate("/student/exams", { replace: true })}
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+          >
+            Back to Exams
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (examExpired) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Exam Expired</h1>
+          <p className="text-gray-600 mb-6">The time window for this exam has ended.</p>
+          <button
+            onClick={() => navigate("/student/exams", { replace: true })}
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+          >
+            Back to Exams
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isCompleted) {
+    const answered = responses.filter((r) => r.status === "answered").length;
+    const skipped = responses.filter((r) => r.status === "skipped").length;
+    const notAnswered = responses.filter(
+      (r) => r.status === "notanswered",
+    ).length;
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="mb-6">
+            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-12 h-12 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Exam Completed!
+            </h1>
+            <p className="text-gray-600">
+              Your responses have been submitted successfully
+            </p>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4">Submission Summary</h2>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-lg">
+                <p className="text-2xl font-bold text-green-600">{answered}</p>
+                <p className="text-sm text-gray-600">Answered</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg">
+                <p className="text-2xl font-bold text-orange-600">{skipped}</p>
+                <p className="text-sm text-gray-600">Skipped</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg">
+                <p className="text-2xl font-bold text-gray-600">
+                  {notAnswered}
+                </p>
+                <p className="text-sm text-gray-600">Not Answered</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate("/student/exams",{replace:true})}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+            >
+              Back to Exams
+            </button>
+            <button
+              onClick={() => setShowFeedback(true)}
+              className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+            >
+              Give Feedback
+            </button>
+          </div>
+
+          {showFeedback && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                <h3 className="text-xl font-semibold mb-4">Exam Feedback</h3>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Rating (1-10)</label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={feedbackRating}
+                    onChange={(e) => setFeedbackRating(parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-sm text-gray-600 mt-1">
+                    <span>1</span>
+                    <span className="font-bold text-lg">{feedbackRating}</span>
+                    <span>10</span>
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                  <textarea
+                    value={feedbackMessage}
+                    onChange={(e) => setFeedbackMessage(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    rows={4}
+                    placeholder="Share your feedback about the exam..."
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowFeedback(false)}
+                    className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await Feedback.addFeedback(examId!, {
+                          message: feedbackMessage,
+                          rating: feedbackRating
+                        });
+                        toast.success("Feedback submitted!");
+                        setShowFeedback(false);
+                      } catch (error) {
+                        toast.error("Failed to submit feedback");
+                      }
+                    }}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  if (isTerminated) {
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="mb-6">
+            <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+<svg
+  className="w-12 h-12 text-red-600"
+  fill="none"
+  stroke="currentColor"
+  viewBox="0 0 24 24"
+>
+  <path
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    d="M6 6L18 18M6 18L18 6"
+  />
+</svg>
+
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Exam Terminated!
+            </h1>
+            <p className="text-gray-600">
+              Your online test has been terminated due to a violation of exam
+              guidelines.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate("/student/exams", { replace: true })}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+            >
+              Back to Exams
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (showInstructions) {
     let instructions;
     try {
@@ -457,7 +770,15 @@ const handleViolationSubmit= async()=>{
               <button
                 key={i}
                 onClick={() => setCurrentQuestion(i)}
-                className={`w-10 h-10 rounded ${i === currentQuestion ? "bg-blue-600 text-white" : responses[i].yourAnswer || responses[i].answer ? "bg-green-500 text-white" : "bg-gray-200"}`}
+                className={`w-10 h-10 rounded text-sm font-semibold ${
+                  i === currentQuestion
+                    ? "bg-blue-600 text-white"
+                    : responses[i].status === "answered"
+                      ? "bg-green-500 text-white"
+                      : responses[i].status === "skipped"
+                        ? "bg-orange-400 text-white"
+                        : "bg-gray-200"
+                }`}
               >
                 {i + 1}
               </button>
@@ -504,13 +825,13 @@ const handleViolationSubmit= async()=>{
                   ([key, value]: [string, any]) => (
                     <label
                       key={key}
-                      className={`flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 ${question.yourAnswer === key ? "border-blue-600 bg-blue-50" : "border-gray-300"} select-none`}
+                      className={`flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 ${question.answer === key ? "border-blue-600 bg-blue-50" : "border-gray-300"} select-none`}
                     >
                       <input
                         type="radio"
                         name="answer"
                         value={key}
-                        checked={question.yourAnswer === key}
+                        checked={question.answer === key}
                         onChange={(e) => handleAnswer(e.target.value)}
                         className="mr-3"
                       />
@@ -538,7 +859,7 @@ const handleViolationSubmit= async()=>{
               </div>
             )}
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-3">
             <button
               onClick={() =>
                 setCurrentQuestion(Math.max(0, currentQuestion - 1))
@@ -547,6 +868,12 @@ const handleViolationSubmit= async()=>{
               className="px-6 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
               Previous
+            </button>
+            <button
+              onClick={handleSkip}
+              className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+            >
+              Skip
             </button>
             {currentQuestion === responses.length - 1 ? (
               <button

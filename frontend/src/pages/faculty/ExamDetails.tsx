@@ -23,7 +23,8 @@ export const ExamDetails = () => {
     testType: genData?.testType || 'quiz',
     publishType: 'public',
     organization: '',
-    channelId: ''
+    channelId: '',
+    resultOut: true
   });
 
   useEffect(() => {
@@ -190,6 +191,16 @@ export const ExamDetails = () => {
             </select>
           </div>
         )}
+
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={formData.resultOut}
+            onChange={(e) => setFormData({ ...formData, resultOut: e.target.checked })}
+            className="rounded"
+          />
+          <label className="text-sm font-medium text-gray-700">Show Results to Students</label>
+        </div>
 
         <div className="flex gap-3 pt-4">
           <button

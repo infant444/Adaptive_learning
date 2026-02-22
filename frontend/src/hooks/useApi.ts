@@ -158,6 +158,7 @@ export const useExploreExams = () => {
       setError(null);
       const response = await Exam.explore();
       setExploreExams(response.data || []);
+      console.log(response.data)
       setFilteredExploreExams(response.data || []);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch exams');

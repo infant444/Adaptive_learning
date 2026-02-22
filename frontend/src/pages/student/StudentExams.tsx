@@ -3,6 +3,33 @@ import { useNavigate } from 'react-router-dom';
 import { useExams, useExploreExams } from '../../hooks/useApi';
 import toast from 'react-hot-toast';
 
+const CountdownTimer = ({ startAt }: { startAt: string }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const start = new Date(startAt).getTime();
+      const diff = start - now;
+
+      if (diff <= 0) {
+        setTimeLeft('00:00:00');
+        clearInterval(interval);
+        window.location.reload();
+      } else {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [startAt]);
+
+  return <span className="text-orange-600 font-semibold">{timeLeft}</span>;
+};
+
 export const StudentExams = () => {
   const [activeTab, setActiveTab] = useState<'my' | 'explore'>('my');
   const { exams: myExams, error: myError, searchExams: searchMy, searchQuery: myQuery } = useExams();
@@ -72,12 +99,22 @@ export const StudentExams = () => {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => navigate(`/student/exam/${exam.id}`)}
-                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm sm:text-base"
-                >
-                  Start Exam
-                </button>
+                {exam.isStart && exam.endAt && new Date(exam.endAt) < new Date() ? (
+                  <div className="w-full sm:w-auto px-4 py-2 bg-red-100 text-red-700 rounded-lg text-center text-sm sm:text-base font-semibold">
+                    Time Expired
+                  </div>
+                ) : exam.isStart && new Date(exam.startAt) > new Date() ? (
+                  <div className="w-full sm:w-auto px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-center text-sm sm:text-base">
+                    Starts in: <CountdownTimer startAt={exam.startAt} />
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => navigate(`/student/exam/${exam.id}`)}
+                    className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm sm:text-base"
+                  >
+                    Start Exam
+                  </button>
+                )}
               </div>
             </div>
           ))

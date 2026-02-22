@@ -79,6 +79,7 @@ export const Exam = {
   generate: (data: FormData) => api.post("/exam/generate", data),
   create: (data: any) => api.post("/exam/create", data),
   getFaculty: () => api.get("/exam/faculty"),
+  getFacultyByID: (id:string) => api.get("/exam/faculty/"+id),
   getMy: () => api.get("/exam/my"),
   updateDetail: (examId: string, data: any) => api.put("/exam/update/detail/" + examId, data),
   updateQuestion: (examId: string, data: any) => api.put("/exam/update/question/" + examId, data),
@@ -86,7 +87,21 @@ export const Exam = {
   getById: (examId: string) => api.get("/exam/detail/" + examId),
   explore: () => api.get("/exam/explore"),
   getChannel: (channelId: string) => api.get("/exam/channel/" + channelId),
-  startExam:(examId:string)=>api.get("/exam/start/"+examId)
+  startExam: (examId: string) => api.get("/exam/start/" + examId),
+  submitResponse: (examId: string, data: any) => api.post("/response/submit/" + examId, data)
 }
 
+export const Response = {
+  submit: (examId: string, data: any) => api.post("/response/submit/" + examId, data),
+  terminated: (examId: string, data: any) => api.post("/response/terminated/" + examId, data),
+  getMyResponse: () => api.get("/response/my/detail"),
+  getStudentResponse: (studentId: string) => api.get("/response/student/" + studentId),
+  getExamResponse: (examId: string) => api.get("/response/exam/" + examId),
+  getResponseById:(id:string)=>api.get("/response/"+id),
+  addFacultyFeedback: (responseId: string, data: any) => api.put("/response/update/" + responseId, data)
+}
+export const Feedback={
+  addFeedback:(examId:string,data:any)=>api.post("/feedback/create/"+examId,data),
+  getFeedback:(examId:string)=>api.get("/feedback/exam/"+examId)
+}
 export default api;

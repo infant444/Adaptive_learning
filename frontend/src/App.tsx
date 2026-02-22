@@ -26,6 +26,8 @@ import { StudentExams } from './pages/student/StudentExams';
 import { TakeExam } from './pages/student/TakeExam';
 import ViewExam from './pages/faculty/viewExam';
 import { NotFound } from './pages/NotFound';
+import AnalysisView from './pages/AnalysisView';
+import Reports from './pages/student/reports';
 
 function App() {
   return (
@@ -40,7 +42,7 @@ function App() {
             <Route path="/test-quiz" element={<ProtectedRoute><TestQuizGeneration /></ProtectedRoute>} />
             <Route path="/channel/:id" element={<ProtectedRoute><ChannelDetail /></ProtectedRoute>} />
             <Route path='/join-channel/:id' element={<ProtectedRoute><ChannelDetail/></ProtectedRoute>}/>
-            
+            <Route path='/response/view/:responseId' element={<ProtectedRoute><AnalysisView/></ProtectedRoute>}/>
             <Route path="/faculty" element={<ProtectedRoute><RoleBasedRoute allowedRoles={['faculty']}><FacultyLayout /></RoleBasedRoute></ProtectedRoute>}>
               <Route path="dashboard" element={<FacultyDashboardHome />} />
               <Route path="channels" element={<FacultyChannels />} />
@@ -58,6 +60,7 @@ function App() {
               <Route path="project-submit" element={<StudentProjectSubmit />} />
               <Route path="settings" element={<Settings />} />
               <Route path="channel" element={<StudentChannels />} />
+              <Route path='analysis' element={<Reports/>}/>
             </Route>
 
             <Route path="/student/exam/:examId" element={<ProtectedRoute><RoleBasedRoute allowedRoles={['student']}><TakeExam /></RoleBasedRoute></ProtectedRoute>} />

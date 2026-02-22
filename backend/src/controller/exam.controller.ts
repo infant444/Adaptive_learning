@@ -45,6 +45,8 @@ export class ExamController {
                 publishType,
                 organization,
                 channelId,
+                resultOut,
+                totalScore
             } = req.body;
             const creatorId = req.user.id;
             const instruction = await QuestionServices.generateExamInstructions({
@@ -70,7 +72,9 @@ export class ExamController {
                     organization,
                     channelId,
                     instructions: instruction,
-                    createdById: creatorId
+                    createdById: creatorId,
+                    resultOut,
+                    totalScore
 
                 }
             });
@@ -140,6 +144,8 @@ export class ExamController {
                 publishType,
                 organization,
                 channelId,
+                resultOut,
+                totalScore
             } = req.body;
             const examId = req.params.examId as string;
             const creatorId = req.user.id;
@@ -168,6 +174,8 @@ export class ExamController {
                     publishType,
                     organization,
                     channelId,
+                    resultOut,
+                    totalScore
                 }
             });
 
@@ -265,6 +273,7 @@ export class ExamController {
                         createdAt: "desc"
                     },
                     select: {
+                        id:true,
                         title: true,
                         domain: true,
                         questionCount: true,
@@ -281,6 +290,7 @@ export class ExamController {
                     }
                 }
             );
+            // console.log(exams);
             res.json(exams);
         } catch (err) {
             next(err)
@@ -294,6 +304,7 @@ export class ExamController {
                 where: {
                     id: id
                 }, select: {
+                    id:true,
                     title: true,
                     domain: true,
                     questionCount: true,
@@ -369,15 +380,32 @@ export class ExamController {
             next(err)
         }
     }
-    static async startExam(req: Request, res: Response, next: NextFunction) {
+    static async startExam(req: any, res: Response, next: NextFunction) {
         try {
             const examId = req.params.examId as string;
+            const studentId = req.user?.id;
+            
             const exam = await prisma.exam.findFirst({
                 where: {
                     id: examId
                 }
-            })
-            res.json(exam);
+            });
+            
+            if (!exam) {
+                return next({ status: 404, message: "Exam not found" });
+            }
+            
+            const existingResponse = await prisma.response.findFirst({
+                where: {
+                    examId,
+                    studentId
+                }
+            });
+            
+            res.json({
+                ...exam,
+                hasResponse: !!existingResponse
+            });
         } catch (err) {
             next(err)
         }

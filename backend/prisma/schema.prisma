@@ -43,10 +43,9 @@ model User {
   createdExams     Exam[]           @relation("created_exams")
   studentResponses Response[]       @relation("student_responses")
   facultyResponses Response[]       @relation("faculty_responses")
-  assignedTo       ExamAssignment[] @relation("assigned_to")
-  assignedBy       ExamAssignment[] @relation("assigned_by")
   facultyChannels  Channel[]        @relation("faculty_channels")
   sentDiscussions  Discussion[]     @relation("Sender")
+  studentFeedbacks ExamFeedback[]   @relation("student_feedback")
 
   @@map("users")
 }
@@ -83,6 +82,8 @@ model Exam {
   publishType     PublishType @map("publish_type")
   organization    String?     @map("organization")
   instructions    Json?       @map("instructions")
+  resultOut       Boolean     @default(true)@map("result_out")
+  totalScore      Int         @default(0)@map("total_score")
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
   createdById String? @map("created_by_id")
@@ -91,7 +92,8 @@ model Exam {
   createdBy   User?            @relation("created_exams", fields: [createdById], references: [id])
   channel     Channel?         @relation(fields: [channelId], references: [id])
   responses   Response[]
-  assignments ExamAssignment[]
+  feedbacks   ExamFeedback[]
+
 
   @@map("exams")
 }
@@ -102,33 +104,25 @@ model Response {
   duration      Int      @default(0) @map("duration")
   violations    String[] @default([]) @map("violations")
   responseScore Float?   @map("response_score")
+  totalScore    Int      @default(0)@map("total_score") 
+  yourScore     Int      @default(0)@map("your_score")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
   isAnalyses    Boolean  @default(false)@map("is_analysis")
   analyses      Json     @map("analyses")
   isTerminated  Boolean  @default(false)@map("is_terminated")
+  terminatedReason String? @map("terminated_reason")
+  facultyReview String?  @map("faculty_review")
   examId    String  @map("exam_id")
   studentId String? @map("student_id")
   facultyId String? @map("faculty_id")
-  exam    Exam  @relation(fields: [examId], references: [id], onDelete: Cascade)
-  student User? @relation("student_responses", fields: [studentId], references: [id])
-  faculty User? @relation("faculty_responses", fields: [facultyId], references: [id])
+  exam     Exam?  @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student  User?  @relation("student_responses", fields: [studentId], references: [id])
+  faculty  User?  @relation("faculty_responses", fields: [facultyId], references: [id])
 
   @@map("responses")
 }
 
-model ExamAssignment {
-  id           String   @id @default(uuid()) @map("id")
-  assignedAt   DateTime @default(now()) @map("assigned_at")
-  examId       String @map("exam_id")
-  assignedToId String @map("assigned_to_id")
-  assignedById String @map("assigned_by_id")
-  exam       Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
-  assignedTo User @relation("assigned_to", fields: [assignedToId], references: [id])
-  assignedBy User @relation("assigned_by", fields: [assignedById], references: [id])
-
-  @@map("exam_assignments")
-}
 
 model Discussion {
   id        String   @id @default(uuid()) @map("id")
@@ -143,4 +137,17 @@ model Discussion {
   @@index([channelId])
   @@index([sendBy])
   @@index([sendAt])
+}
+model ExamFeedback {
+  id         String   @id @default(uuid()) @map("id")
+  message    String   @map("message")
+  rating     Int      @map("rating")
+  examId     String   @map("exam_id")
+  studentId  String   @map("student_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  exam     Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student  User     @relation("student_feedback", fields: [studentId], references: [id])
+
+  @@map("exam_feedbacks")
 }

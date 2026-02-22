@@ -474,7 +474,8 @@ export const ChannelDetail = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                   <h2 className="text-base sm:text-lg font-semibold">Exams</h2>
                   {isFacultyOwner && (
-                    <button className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm">
+                    <button className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                    onClick={() =>navigate("/faculty/exams/create")}>
                       Add Exam
                     </button>
                   )}
@@ -543,7 +544,8 @@ export const ChannelDetail = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                   <h2 className="text-base sm:text-lg font-semibold">Work</h2>
                   {isFacultyOwner && (
-                    <button className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm">
+                    <button className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                    >
                       Add Work
                     </button>
                   )}
