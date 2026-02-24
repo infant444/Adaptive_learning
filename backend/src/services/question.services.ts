@@ -12,7 +12,7 @@ export class QuestionServices {
     });
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-3-flash-preview"
+      model: "gemini-1.5-flash"
     });
 
     const result = await model.generateContent([
@@ -41,7 +41,7 @@ export class QuestionServices {
     });
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-3-flash-preview"
+      model: "gemini-1.5-flash"
     });
 
     const result = await model.generateContent([
@@ -64,14 +64,14 @@ export class QuestionServices {
   }
 
 
-  static async generateProjectUnderstandingQuiz(count: number, questionType: 'mcq' | 'descriptive', file: any) {
+  static async generateProjectUnderstandingQuiz(count: number, questionType: 'quiz' | 'summary', file: any) {
     const uploadedFile = await fileManager.uploadFile(file.buffer, {
       mimeType: file.mimetype,
       displayName: file.originalname
     });
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-3-flash-preview"
+      model: "gemini-1.5-flash"
     });
 
     const result = await model.generateContent([
@@ -101,7 +101,7 @@ export class QuestionServices {
     difficulty?: string;
   }) {
     const model = genAI.getGenerativeModel({
-      model: "gemini-3-flash-preview"
+      model: "gemini-1.5-flash"
     });
 
     const result = await model.generateContent([

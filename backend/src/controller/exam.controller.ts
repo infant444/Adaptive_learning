@@ -273,7 +273,7 @@ export class ExamController {
                         createdAt: "desc"
                     },
                     select: {
-                        id:true,
+                        id: true,
                         title: true,
                         domain: true,
                         questionCount: true,
@@ -304,7 +304,7 @@ export class ExamController {
                 where: {
                     id: id
                 }, select: {
-                    id:true,
+                    id: true,
                     title: true,
                     domain: true,
                     questionCount: true,
@@ -333,33 +333,50 @@ export class ExamController {
                     teamMembers: {
                         has: userId
                     }
-                },select:{
-                        id:true
-                    }
+                }, select: {
+                    id: true
+                }
             })
-            if(channelId.length==0){
+            if (channelId.length == 0) {
                 throw { status: 400, message: "No Exam is available for you" }
             }
-            const exams=await prisma.exam.findMany({
-                where:{
-                    channelId:{
-                        in:channelId.map(c=>c.id)
+            const exams = await prisma.exam.findMany({
+                where: {
+                    channelId: {
+                        in: channelId.map(c => c.id)
                     }
                 }
             })
-            res.json(exams);
+            const ExamWithStatus = await Promise.all(
+                exams.map(async (exam) => {
+                    const response = await prisma.response.findFirst({
+                        where: {
+                            examId: exam.id,
+                            studentId: userId
+                        }
+                    });
+                    return {
+                        ...exam,
+                        status: response?.response ? "completed" : exam.isStart == true && exam.endAt && new Date(exam.endAt) < new Date() ? "expire" : "pending",
+                        yourScore: response?.yourScore || 0,
+                        isAnalysis: response?.analyses || false
+                    };
+                })
+            );
+            res.json(ExamWithStatus);
         }
         catch (err) {
             next(err)
         }
     }
-    static async getChannelExam(req: Request, res: Response, next: NextFunction) {
+    static async getChannelExam(req: any, res: Response, next: NextFunction) {
         const ChannelId = req.params.channelId as string;
         try {
             const exams = await prisma.exam.findMany({
                 where: {
                     channelId: ChannelId
                 }, select: {
+                    id: true,
                     title: true,
                     domain: true,
                     questionCount: true,
@@ -375,6 +392,28 @@ export class ExamController {
                     createdById: true
                 }
             });
+            if (req.user.role == "student") {
+                const userId = req.user.id;
+                const ExamWithStatus = await Promise.all(
+                    exams.map(async (exam) => {
+                        const response = await prisma.response.findFirst({
+                            where: {
+                                examId: exam.id,
+                                studentId: userId
+                            }
+                        });
+                        return {
+                            ...exam,
+                            status: response?.response ? "completed" : exam.isStart == true && exam.endAt && new Date(exam.endAt) < new Date() ? "expire" : "pending",
+                            yourScore: response?.yourScore || 0,
+                            isAnalysis: response?.analyses || false,
+                            responseId:response?.id||''
+                        };
+                    })
+                );
+                res.json(ExamWithStatus);
+                return;
+            }
             res.json(exams);
         } catch (err) {
             next(err)
@@ -384,24 +423,24 @@ export class ExamController {
         try {
             const examId = req.params.examId as string;
             const studentId = req.user?.id;
-            
+
             const exam = await prisma.exam.findFirst({
                 where: {
                     id: examId
                 }
             });
-            
+
             if (!exam) {
                 return next({ status: 404, message: "Exam not found" });
             }
-            
+
             const existingResponse = await prisma.response.findFirst({
                 where: {
                     examId,
                     studentId
                 }
             });
-            
+
             res.json({
                 ...exam,
                 hasResponse: !!existingResponse

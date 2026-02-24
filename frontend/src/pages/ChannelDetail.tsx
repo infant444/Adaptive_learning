@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { io, Socket } from "socket.io-client";
-import { Channel, Discussion, Exam } from "../lib/api";
+import { Assignment, Channel, Discussion, Exam } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import * as XLSX from "xlsx";
 import {
@@ -21,6 +21,10 @@ import {
   Send,
   MessageSquare,
   WalletCardsIcon,
+  ArrowRight,
+  Calendar,
+  Eye,
+  Clock,
 } from "lucide-react";
 
 export const ChannelDetail = () => {
@@ -40,6 +44,8 @@ export const ChannelDetail = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
   const [exams, setExams] = useState<any>(null);
+  const [work, setWork] = useState<any[]>([]);
+  const [countdown, setCountdown] = useState<{[key: string]: string}>({});
   useEffect(() => {
     fetchChannel();
     if (activeTab === "discussion") {
@@ -48,11 +54,36 @@ export const ChannelDetail = () => {
     if (activeTab == "exams") {
       fetchExams();
     }
+    if (activeTab == "work") {
+      fetchWork();
+    }
   }, [id, activeTab]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (activeTab === "exams" && exams) {
+      const interval = setInterval(() => {
+        const newCountdown: {[key: string]: string} = {};
+        exams.forEach((exam: any) => {
+          if (exam.isStart && exam.startAt && new Date(exam.startAt) > new Date()) {
+            const diff = new Date(exam.startAt).getTime() - new Date().getTime();
+            if (diff > 0) {
+              const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+              const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+              const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+              const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+              newCountdown[exam.id] = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            }
+          }
+        });
+        setCountdown(newCountdown);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, exams]);
 
   useEffect(() => {
     if (activeTab === "discussion" && id) {
@@ -136,6 +167,15 @@ export const ChannelDetail = () => {
     try {
       const response = await Exam.getChannel(id!);
       setExams(response.data);
+      console.log(response.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const fetchWork = async () => {
+    try {
+      const response = await Assignment.getForChannel(id!);
+      setWork(response.data);
       console.log(response.data);
     } catch (err) {
       console.error(err);
@@ -474,8 +514,10 @@ export const ChannelDetail = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                   <h2 className="text-base sm:text-lg font-semibold">Exams</h2>
                   {isFacultyOwner && (
-                    <button className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
-                    onClick={() =>navigate("/faculty/exams/create")}>
+                    <button
+                      className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                      onClick={() => navigate("/faculty/exams/create")}
+                    >
                       Add Exam
                     </button>
                   )}
@@ -509,24 +551,78 @@ export const ChannelDetail = () => {
                             </div>
                             {exam.isStart && (
                               <div className="mt-2 text-xs sm:text-sm text-gray-500">
-                                Start: {new Date(exam.startAt).toLocaleString()}
+                                {new Date(exam.startAt) > new Date() ? (
+                                  <div className="flex items-center gap-2 text-orange-600 font-semibold">
+                                    <Clock className="w-4 h-4" />
+                                    Starts in: {countdown[exam.id] || 'Calculating...'}
+                                  </div>
+                                ) : (
+                                  <div>Start: {new Date(exam.startAt).toLocaleString()}</div>
+                                )}
                               </div>
                             )}
                           </div>
                           {(!exam.isStart ||
                             (exam.isStart &&
                               new Date(exam.startAt) <= new Date())) &&
-                            (!exam.endAt ||
-                              new Date(exam.endAt) > new Date()) && (
-                              <button
-                                onClick={() =>
-                                  navigate(`/student/exam/${exam.id}`)
-                                }
-                                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm sm:text-base"
-                              >
-                                Start Exam
-                              </button>
-                            )}
+                          (!exam.endAt || new Date(exam.endAt) > new Date()) &&
+                          exam.status == "pending" &&
+                          isStudentMember ? (
+                            <button
+                              onClick={() =>
+                                navigate(`/student/exam/${exam.id}`)
+                              }
+                              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm sm:text-base"
+                            >
+                              Start Exam
+                            </button>
+                          ) : (
+                            <div>
+                              {exam.status == "completed" ? (
+                                <div className="flex flex-col gap-3">
+                                  <div className="w-full sm:w-auto px-4 py-2 bg-green-100 text-green-700 rounded-lg text-center text-sm sm:text-base font-semibold">
+                                    completed
+                                  </div>
+                                  {exam.responseId && (
+                                    <button
+                                      onClick={() =>
+                                        navigate(
+                                          `/response/view/${exam.responseId}`,
+                                        )
+                                      }
+                                      className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm sm:text-base"
+                                    >
+                                      View Analysis
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <div>
+                                  {exam.isStart &&
+                                  (!exam.endAt ||
+                                    new Date(exam.endAt) > new Date()) ? (
+                                    <div className="w-full sm:w-auto px-4 py-2 bg-red-100 text-red-700 rounded-lg text-center text-sm sm:text-base font-semibold">
+                                      Expired
+                                    </div>
+                                  ) : (
+                                    <div className="w-full sm:w-auto px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-center text-sm sm:text-base font-semibold">
+                                      Live
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {isFacultyOwner && (
+                            <button
+                              onClick={() =>
+                                navigate(`/faculty/exam/${exam.id}`)
+                              }
+                              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm sm:text-base"
+                            >
+                              View Analysis
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -543,16 +639,105 @@ export const ChannelDetail = () => {
               <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                   <h2 className="text-base sm:text-lg font-semibold">Work</h2>
-                  {isFacultyOwner && (
-                    <button className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
-                    >
-                      Add Work
-                    </button>
-                  )}
                 </div>
-                <p className="text-gray-500 text-sm sm:text-base">
-                  Work list will be displayed here
-                </p>
+                {work ? (
+                  <div className="grid gap-4">
+                    {work.map((assignment) => (
+                      <div
+                        key={assignment.id}
+                        className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
+                              {assignment.title}
+                            </h3>
+                            <p className="text-gray-600 mb-3 line-clamp-2">
+                              {assignment.description}
+                            </p>
+                            <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
+                              {assignment.projectType && (
+                                <div className="flex items-center gap-1">
+                                  <FileText className="w-4 h-4" />
+                                  <span>Type: {assignment.projectType}</span>
+                                </div>
+                              )}
+                              {assignment.isQuestions && (
+                                <span>
+                                  Questions: {assignment.questionCount}
+                                </span>
+                              )}
+                              <span>Score: {assignment.totalScore}</span>
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                <span>
+                                  Due:{" "}
+                                  {new Date(
+                                    assignment.lastDate,
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                            {assignment.isQuestions && (
+                              <div className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm font-medium">
+                                {assignment.examType}
+                              </div>
+                            )}
+                          </div>
+                          {isFacultyOwner && (
+                            <button
+                              onClick={() => {
+                                navigate("/faculty/project/" + assignment.id);
+                              }}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </button>
+                          )}
+                          {isStudentMember && (
+                            <div className="ml-4 ">
+                              {assignment.isAnalysis ? (
+                                <div className="flex flex-col justify-center h-full">
+                                  <div className="w-full sm:w-auto px-4 py-2 bg-green-100 text-green-700 rounded-lg text-center text-sm sm:text-base font-semibold">
+                                    uploaded
+                                  </div>
+                                  {assignment.yourScore && (
+                                    <p className="">
+                                      Score:
+                                      <span>
+                                        {assignment.yourScore +
+                                          "/" +
+                                          assignment.totalScore}
+                                      </span>
+                                    </p>
+                                  )}
+                                </div>
+                              ) : (
+                                <div>
+                                  {new Date(assignment.lastDate) > new Date() &&
+                                  assignment.status == "pending" ? (
+                                    <div className="w-full sm:w-auto px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-center text-sm sm:text-base font-semibold">
+                                      Pending
+                                    </div>
+                                  ) : (
+                                    <div className="w-full sm:w-auto px-4 py-2 bg-red-100 text-red-700 rounded-lg text-center text-sm sm:text-base font-semibold">
+                                      Expire
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm sm:text-base">
+                    Work list will be displayed here
+                  </p>
+                )}
               </div>
             )}
             {activeTab === "admin" && (

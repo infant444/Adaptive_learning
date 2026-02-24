@@ -19,12 +19,24 @@ export class ResponseController{
                 facultyId
             } = req.body;
             const examId = req.params.id;
-            
+            const check=await prisma.response.findFirst({
+                where: {
+                    examId,
+                    studentId: req.user?.id
+                }
+            });
+            if(check){
+                res.json({message: "Response already submitted for this exam"});
+                return
+            }
+            console.log(check)
+            console.log("duration");
+            const durationX=(durationMinutes*60)<=duration?duration:(durationMinutes*60);
             const analysis = await AnalysisServices.analyzeExam({
                 testType,
                 questions,
                 studentResponses: response,
-                timeTaken: duration,
+                timeTaken: durationX,
                 totalScore,
                 durationMinutes
             });
@@ -35,7 +47,7 @@ export class ResponseController{
             const responseData = await prisma.response.create({
                 data: {
                     response,
-                    duration,
+                    duration:durationX,
                     violations,
                     totalScore,
                     yourScore,

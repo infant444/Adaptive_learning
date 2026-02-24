@@ -67,7 +67,7 @@ const Reports = () => {
                     <div>
                       <p className="text-sm text-gray-600">Duration</p>
                       <p className="text-lg font-medium text-gray-700">
-                        {response.duration} min
+                        {String(Math.floor(response.duration/60)).padStart(2, '0')}:{String(response.duration%60).padStart(2, '0')}
                       </p>
                     </div>
                   </div>

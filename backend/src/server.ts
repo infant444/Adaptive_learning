@@ -13,6 +13,8 @@ import UserRouter from './router/user.route';
 import DiscussionRouter from './router/discussion.route';
 import ResponseRouter from './router/response.route';
 import FeedBackRouter from './router/feedback.route';
+import AssignmentRouter from './router/assignment.route';
+import DashboardRouter from './router/dashboard.route';
 const app=express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -59,7 +61,9 @@ app.use("/api/channel",ChannelRouter);
 app.use("/api/exam",ExamRouter);
 app.use("/api/discussion",DiscussionRouter);
 app.use("/api/response",ResponseRouter);
-app.use("/api/feedback",FeedBackRouter)
+app.use("/api/feedback",FeedBackRouter);
+app.use("/api/assignment", AssignmentRouter);
+app.use("/api/dashboard", DashboardRouter);
 app.use(errorHandler);
 
 

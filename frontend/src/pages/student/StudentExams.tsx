@@ -91,7 +91,6 @@ export const StudentExams = () => {
                     <span>{exam.durationMinutes} min</span>
                     <span>{exam.questionCount} questions</span>
                     <span className="capitalize">{exam.testType}</span>
-                    <span className="capitalize">{exam.publishType}</span>
                   </div>
                   {exam.isStart && (
                     <div className="mt-2 text-xs sm:text-sm text-gray-500">

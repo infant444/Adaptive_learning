@@ -54,13 +54,13 @@ export class UserController{
     static async updateDetail(req:any, res:Response, next:NextFunction){
         try{
             const userId=req.user.id as string;
-            const {name, phoneNo, collegeName, university}=req.body;
+            const {name,  collegeName, university}=req.body;
             const user= await prisma.user.update({
                 where:{
                     id:userId
                 },
                 data:{
-                    name, phoneNo, collegeName, university
+                    name, collegeName, university
                 }
             });
             res.send(user);

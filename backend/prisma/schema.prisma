@@ -46,7 +46,9 @@ model User {
   facultyChannels  Channel[]        @relation("faculty_channels")
   sentDiscussions  Discussion[]     @relation("Sender")
   studentFeedbacks ExamFeedback[]   @relation("student_feedback")
-
+  assignment       Assignment[]     @relation("created_assignment")
+  studentAssignmentResponses AssignmentResponse[] @relation("student_assignment_responses")
+  facultyAssignmentResponses AssignmentResponse[] @relation("faculty_assignment_responses")
   @@map("users")
 }
 
@@ -63,7 +65,7 @@ model Channel {
   faculty     User?        @relation("faculty_channels", fields: [facultyId], references: [id])
   exams       Exam[]
   discussions Discussion[]
-
+  assignment  Assignment[]
   @@map("channels")
 }
 
@@ -131,7 +133,7 @@ model Discussion {
   channelId String   @map("channel_id")
   sendAt    DateTime @default(now()) @map("send_at")
 
-  sendUser  User?     @relation("Sender", fields: [sendBy], references: [id])
+  sendUser  User?    @relation("Sender", fields: [sendBy], references: [id])
   channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
   @@index([channelId])
@@ -145,9 +147,55 @@ model ExamFeedback {
   examId     String   @map("exam_id")
   studentId  String   @map("student_id")
   createdAt  DateTime @default(now()) @map("created_at")
-
-  exam     Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  student  User     @relation("student_feedback", fields: [studentId], references: [id])
+  exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student    User     @relation("student_feedback", fields: [studentId], references: [id])
 
   @@map("exam_feedbacks")
+}
+
+model Assignment{
+  id                  String      @id @default(uuid()) @map("id")
+  title               String      @map("title")
+  projectType         String?     @map("project_type")
+  description         String?     @map("description")
+  isQuestions         Boolean     @default(false)@map("is_questions")
+  questionCount       Int?        @map("question_count")
+  questions           Json        @map("questions")
+  totalScore          Int         @default(0)@map("total_score") 
+  examType            TestType    @map("exam_type")
+  lastDate            DateTime    @map("last_date")
+  createdById         String?     @map("created_by_id")
+  channelId           String?     @map("channel_id")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+  createdBy           User?       @relation("created_assignment", fields: [createdById], references: [id])
+  channel             Channel?    @relation(fields: [channelId], references: [id])
+  responses           AssignmentResponse[]
+  @@map("assignments")
+}
+
+model AssignmentResponse{
+  id            String   @id @default(uuid()) @map("id")
+  response      Json?     @map("response")
+  responseAnalysis Json?  @map("response_analysis")
+  question      Json?     @map("question")
+  violations    String[]  @default([])@map("violations")
+  isTerminated  Boolean   @default(false)@map("is_terminated")
+  terminatedReason String? @map("terminated_reason")
+  totalScore    Int      @default(0)@map("total_score") 
+  yourScore     Int      @default(0)@map("your_score")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  isAnalyses    Boolean  @default(false)@map("is_analysis")
+  analyses      Json?     @map("analyses")
+  facultyReview String?  @map("faculty_review")
+  assignmentId  String  @map("assignment_id")
+  attachment    String? @map("attachment")
+  studentId String? @map("student_id")
+  facultyId String? @map("faculty_id")
+  assignment     Assignment?  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student  User?  @relation("student_assignment_responses", fields: [studentId], references: [id])
+  faculty  User?  @relation("faculty_assignment_responses", fields: [facultyId], references: [id])
+
+  @@map("assignment_responses")
 }

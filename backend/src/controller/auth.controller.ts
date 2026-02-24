@@ -136,16 +136,18 @@ export class AuthController {
     // In forgot password to reset a password
     static async forgotResetPassword(req: Request, res: Response, next: NextFunction) {
         try {
-            const { email, token, password, code } = req.body;
+            const { email, token, newPassword, code } = req.body;
             const user = await prisma.user.findUnique({ where: { email } });
             if (!user) {
                 next({ status: 400, message: "User not exists!" });
                 return;
             }
-            if (verifyMailToken(token) !== code) {
+            console.log(verifyMailToken(token));
+            
+            if (verifyMailToken(token) != code) {
                 next({ status: 400, message: "Invalid code!" });
             }
-            const hashedPassword = await bcrypt.hash(password, 10);
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
             const updatedUser = await prisma.user.update({
                 where: { email },
                 data: { password: hashedPassword }
@@ -156,15 +158,15 @@ export class AuthController {
         }
     }
     // 🔐 UPDATE PASSWORD
-    static async updatePassword(req: Request, res: Response, next: NextFunction) {
+    static async updatePassword(req: any, res: Response, next: NextFunction) {
         try {
-            const { id, password, new_password } = req.body;
-
-            if (!id || !password || !new_password) {
+            const {  password, new_password } = req.body;
+            const userId=req.user.id;
+            if ( !password || !new_password) {
                 return next({ status: 400, message: "Missing fields" });
             }
 
-            const user = await prisma.user.findUnique({ where: { id: id } });
+            const user = await prisma.user.findUnique({ where: { id: userId } });
 
             if (!user) {
                 return next({ status: 404, message: "User not found" });
@@ -178,7 +180,7 @@ export class AuthController {
             const hashedPassword = await bcrypt.hash(new_password, 10);
 
             await prisma.user.update({
-                where: { id: id },
+                where: { id: userId },
                 data: { password: hashedPassword }
             });
 

@@ -13,6 +13,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.7.1",
+    "@supabase/supabase-js": "^2.97.0",
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^7.0.9",
     "bcrypt": "^6.0.0",
@@ -30,6 +31,7 @@
     "postgres": "^3.4.7",
     "prisma": "^5.7.1",
     "socket.io": "^4.8.3",
+    "supabase-js": "^0.0.1-security",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "ws": "^8.19.0"

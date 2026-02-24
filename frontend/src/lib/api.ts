@@ -34,6 +34,7 @@ api.interceptors.response.use(
   (error) => {
     if (setLoadingGlobal) setLoadingGlobal(false);
     if (error.response?.status === 401) {
+      console.log(error.response);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -51,7 +52,7 @@ export const User = {
 }
 
 export const Auth = {
-  sendOtpForgotPassword: (data: any) => api.post("/auth//otp/forgot-password", data),
+  sendOtpForgotPassword: (data: any) => api.post("/auth/otp/forgot-password", data),
   changePassword: (data: any) => api.put("/auth/forgot-password", data),
   updatePassword: (data: any) => api.put("/auth/update-password", data),
   logout: () => api.put('/auth/logout'),
@@ -103,5 +104,27 @@ export const Response = {
 export const Feedback={
   addFeedback:(examId:string,data:any)=>api.post("/feedback/create/"+examId,data),
   getFeedback:(examId:string)=>api.get("/feedback/exam/"+examId)
+}
+export const Assignment={
+  create:(data:any)=>api.post("/assignment/create",data),
+  getById:(id:string)=>api.get("/assignment/"+id),
+  getForFaculty:()=>api.get("/assignment/faculty/detail"),
+  myAssignment:()=>api.get("/assignment/my/detail"),
+  getForChannel:(channelId:string)=>api.get("/assignment/channel/"+channelId),
+  update:(id:string,data:any)=>api.put("/assignment/update/"+id,data),
+  delete:(id:string)=>api.delete("/assignment/delete/"+id)
+}
+export const AssignmentResponse={
+  submit:(assignmentId:string, data:FormData)=>api.post("/assignment/response/create/"+assignmentId, data),
+  getMyResponse:()=>api.get("/assignment/response/my/detail"),
+  getAssignmentResponse:(assignmentId:string)=>api.get("/assignment/response/assignment/"+assignmentId),
+  getResponseById:(responseId:string)=>api.get("/assignment/response/"+responseId),
+  getMyResponseId:()=>api.get("/assignment/response/my/id"),
+  updateResponse:(id:string,data:any)=>api.put("/assignment/response/addResponse/"+id,data),
+  sendFeedback:(id:string,data:any)=>api.put("/assignment/response/sendFeedback/"+id,data)
+}
+export const Dashboard={
+  getFaculty:()=>api.get("/dashboard/faculty"),
+  getStudent:()=>api.get("/dashboard/student")
 }
 export default api;

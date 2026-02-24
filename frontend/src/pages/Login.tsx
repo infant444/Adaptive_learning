@@ -100,6 +100,11 @@ export const Login = () => {
                   Sign up here
                 </Link>
               </p>
+              <p className="text-gray-600 mt-2">
+                <Link to="/forgot-password" className="text-blue-600 hover:text-blue-700 font-semibold transition-colors">
+                  Forgot Password?
+                </Link>
+              </p>
             </div>
           </form>
         </div>

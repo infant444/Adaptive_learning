@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExams } from '../../hooks/useApi';
 import toast from 'react-hot-toast';
 import { Exam } from '../../lib/api';
+import { Eye, Trash2 } from 'lucide-react';
 
 export const FacultyExams = () => {
   const { exams, error, refetch, searchExams, searchQuery } = useExams();
@@ -74,13 +76,13 @@ export const FacultyExams = () => {
                     onClick={() => navigate(`/faculty/exam/${exam.id}`)}
                     className="flex-1 sm:flex-none px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
                   >
-                    View
+                    <Eye/>
                   </button>
                   <button
                     onClick={() => handleDelete(exam.id)}
                     className="flex-1 sm:flex-none px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
                   >
-                    Delete
+                   <Trash2/>
                   </button>
                 </div>
               </div>

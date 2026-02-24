@@ -9,6 +9,6 @@ route.post("/login", asyncHandler(AuthController.login));
 route.post("/otp/forgot-password", asyncHandler(AuthController.forgotPasswordSendMail));
 route.put("/verify", asyncHandler(AuthController.verifyUser));
 route.put("/forgot-password",asyncHandler(AuthController.forgotResetPassword))
-route.put("/update-password", asyncHandler(AuthController.updatePassword))
+route.put("/update-password", authMiddleware ,asyncHandler(AuthController.updatePassword))
 route.put("/logout",authMiddleware ,asyncHandler(AuthController.logout))
 export default route

@@ -2,8 +2,8 @@
 /* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, replace } from "react-router-dom";
-import { Exam, Feedback } from "../../lib/api";
+import { useParams, useNavigate } from "react-router-dom";
+import { AssignmentResponse } from "../../lib/api";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
@@ -72,7 +72,7 @@ const KioskLockOverlay = ({ onReenter }: { onReenter: () => void }) => {
           Fullscreen Required
         </h2>
         <p className="text-gray-600 mb-6">
-          You must remain in fullscreen mode to continue the exam.
+          You must remain in fullscreen mode to continue the test.
         </p>
         <button
           onClick={onReenter}
@@ -85,60 +85,44 @@ const KioskLockOverlay = ({ onReenter }: { onReenter: () => void }) => {
   );
 };
 
-export const TakeExam = () => {
-  const { examId } = useParams();
+export const TakeAssignmentTest = () => {
+  const { assignmentId, responseId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [exam, setExam] = useState<any>(null);
+  const [assignmentResponse, setAssignmentResponse] = useState<any>(null);
   const [showInstructions, setShowInstructions] = useState(true);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
   const [violations, setViolations] = useState(0);
+  const [alreadyAttended, setAlreadyAttended] = useState(false);
   const [violationLog, setViolationLog] = useState<string[]>([]);
-  const [timeLeft, setTimeLeft] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isTerminated, setIsTerminated] = useState(false);
   const [startTime, setStartTime] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState("");
-  const [feedbackRating, setFeedbackRating] = useState(5);
-  const [alreadyAttended, setAlreadyAttended] = useState(false);
-  const [examNotStarted, setExamNotStarted] = useState(false);
-  const [examExpired, setExamExpired] = useState(false);
   const [loading, setLoading] = useState(true);
-  const timerRef = useRef<any>(null);
   const cleanupRef = useRef<any>(null);
   const checkIntervalRef = useRef<any>(null);
   const violationLogRef = useRef<string[]>([]);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [cameraActive, setCameraActive] = useState(false);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [forcetimeout,setForceTimeout]=useState(false)
+
   useEffect(() => {
-    fetchExam();
+    fetchAssignmentResponse();
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
       if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
       if (cleanupRef.current) cleanupRef.current();
       exitFullscreen();
       document.body.style.overflow = "";
     };
-  }, []);
+  }, [responseId]);
 
   useEffect(() => {
-    if (!showInstructions && exam) {
+    if (!showInstructions && assignmentResponse) {
       enterFullscreen();
       setStartTime(Date.now());
-      startTimer();
       cleanupRef.current = setupViolationDetection();
       startFullscreenCheck();
-      startCamera();
     }
-    return () => {
-      stopCamera();
-    };
   }, [showInstructions]);
 
   useEffect(() => {
@@ -149,41 +133,24 @@ export const TakeExam = () => {
     }
   }, [isLocked]);
 
-  const fetchExam = async () => {
+  const fetchAssignmentResponse = async () => {
     try {
-      const res = await Exam.startExam(examId!);
-      const examData = res.data;
-
-      if (examData.hasResponse) {
-        setAlreadyAttended(true);
+      const res = await AssignmentResponse.getResponseById(responseId!);
+      const data = res.data;
+      
+      if (data.alreadyCompleted) {
+ setAlreadyAttended(true);
         setLoading(false);
         return;
       }
-
-      if (examData.isStart) {
-        const now = new Date().getTime();
-        const startTime = new Date(examData.startAt).getTime();
-        const endTime = new Date(examData.endAt).getTime();
-
-        if (now < startTime) {
-          setExamNotStarted(true);
-          setLoading(false);
-          return;
-        }
-
-        if (now > endTime) {
-          setExamExpired(true);
-          setLoading(false);
-          return;
-        }
-      }
-
-      setExam(examData);
+      
+      setAssignmentResponse(data);
       const parsedQuestions =
-        typeof examData.questions === "string"
-          ? JSON.parse(examData.questions)
-          : examData.questions;
-      const shuffled = [...parsedQuestions].sort(() => Math.random() - 0.5);
+        typeof data.question === "string"
+          ? JSON.parse(data.question)
+          : data.question;
+      const questions = parsedQuestions?.questions || parsedQuestions || [];
+      const shuffled = [...questions].sort(() => Math.random() - 0.5);
       setResponses(
         shuffled.map((q: any) => ({
           ...q,
@@ -191,10 +158,9 @@ export const TakeExam = () => {
           status: "notanswered",
         })),
       );
-      if (examData.isDuration) setTimeLeft(examData.durationMinutes * 60);
       setLoading(false);
     } catch (error: any) {
-      toast.error("Failed to load exam");
+      toast.error("Failed to load test");
       navigate(-1);
     }
   };
@@ -205,58 +171,6 @@ export const TakeExam = () => {
 
   const exitFullscreen = () => {
     if (document.fullscreenElement) document.exitFullscreen?.();
-  };
-
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-        },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
-        };
-        setCameraActive(true);
-        toast.success("Camera activated");
-      }
-    } catch (error) {
-      console.error("Camera error:", error);
-      toast.error("Camera access denied");
-    }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setCameraActive(false);
-  };
-
-  const startTimer = () => {
-    if (!exam?.isDuration) return;
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          setForceTimeout(true);
-          console.log(prev)
-          if (!isSubmitting) {
-            handleSubmit();
-            console.log("Auto submitting exam")
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
   };
 
   const startFullscreenCheck = () => {
@@ -396,113 +310,72 @@ export const TakeExam = () => {
       setCurrentQuestion(currentQuestion + 1);
     }
   };
+
   const handleViolationSubmit = async () => {
-    if (isSubmitting) return;
     setIsSubmitting(true);
     setIsLocked(false);
-    stopCamera();
-    if (timerRef.current) clearInterval(timerRef.current);
     if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
     if (cleanupRef.current) cleanupRef.current();
     exitFullscreen();
     try {
-      const duration = Math.floor((Date.now() - startTime) / 1000);
-      await Exam.submitResponse(examId!, {
+      await AssignmentResponse.updateResponse(responseId!, {
         response: responses,
-        duration,
         violations: violationLogRef.current,
-        totalScore: exam.totalScore,
         isTerminated: true,
         terminatedReason: "Maximum violations reached",
-        questions: responses,
-        testType: exam.testType,
-        durationMinutes: 0,
-        facultyId: exam.createdById,
       });
-      toast.error("Exam auto-submitted due to violations");
+      toast.error("Test auto-submitted due to violations");
       setIsTerminated(true);
     } catch (error) {
-      toast.error("Failed to submit exam");
+      toast.error("Failed to submit test");
     }
   };
 
   const handleSubmit = async () => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
     const unanswered = responses.filter(
       (r) => r.status === "notanswered" || r.status === "skipped",
     );
-    if (unanswered.length > 0 && timeLeft > 0) {
+    if (unanswered.length > 0) {
       const confirm = window.confirm(
         `You have ${unanswered.length} unanswered/skipped questions. Submit anyway?`,
       );
       if (!confirm) return;
     }
-
+    setIsSubmitting(true);
     setIsLocked(false);
-    stopCamera();
-    if (timerRef.current) clearInterval(timerRef.current);
     if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
     if (cleanupRef.current) cleanupRef.current();
     exitFullscreen();
     try {
-      const duration = forcetimeout?(exam?.durationMinutes*60 || 0):(Math.floor((Date.now() - startTime) / 1000));
-      await Exam.submitResponse(examId!, {
+      await AssignmentResponse.updateResponse(responseId!, {
         response: responses,
-        duration,
         violations: violationLogRef.current,
-        totalScore: exam.totalScore,
         isTerminated: false,
         terminatedReason: null,
-        questions: responses,
-        testType: exam.testType,
-        durationMinutes: exam.durationMinutes,
-        facultyId: exam.createdById,
       });
-      toast.success("Exam submitted successfully");
+      toast.success("Test submitted successfully");
       setIsCompleted(true);
     } catch (error) {
-      toast.error("Failed to submit exam");
+      toast.error("Failed to submit test");
     }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   if (loading) {
     return <div className="p-8 text-center">Loading...</div>;
   }
-
   if (alreadyAttended) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
           <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-12 h-12 text-yellow-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
+            <svg className="w-12 h-12 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Already Attended
-          </h1>
-          <p className="text-gray-600 mb-6">
-            You have already completed this exam.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Already Attended</h1>
+          <p className="text-gray-600 mb-6">You have already completed this exam.</p>
           <button
-            onClick={() => navigate("/student/exams", { replace: true })}
+            onClick={() => navigate("/student/project-submit", { replace: true })}
             className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
           >
             Back to Exams
@@ -511,79 +384,6 @@ export const TakeExam = () => {
       </div>
     );
   }
-
-  if (examNotStarted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
-          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-12 h-12 text-blue-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Exam Not Started
-          </h1>
-          <p className="text-gray-600 mb-6">
-            This exam has not started yet. Please check back later.
-          </p>
-          <button
-            onClick={() => navigate("/student/exams", { replace: true })}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-          >
-            Back to Exams
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (examExpired) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
-          <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-12 h-12 text-red-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Exam Expired
-          </h1>
-          <p className="text-gray-600 mb-6">
-            The time window for this exam has ended.
-          </p>
-          <button
-            onClick={() => navigate("/student/exams", { replace: true })}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-          >
-            Back to Exams
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (isCompleted) {
     const answered = responses.filter((r) => r.status === "answered").length;
     const skipped = responses.filter((r) => r.status === "skipped").length;
@@ -611,7 +411,7 @@ export const TakeExam = () => {
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Exam Completed!
+              Test Completed!
             </h1>
             <p className="text-gray-600">
               Your responses have been submitted successfully
@@ -638,89 +438,17 @@ export const TakeExam = () => {
             </div>
           </div>
 
-          <div className="space-y-3">
-            <button
-              onClick={() => navigate("/student/exams", { replace: true })}
-              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-            >
-              Back to Exams
-            </button>
-            <button
-              onClick={() => setShowFeedback(true)}
-              className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
-            >
-              Give Feedback
-            </button>
-          </div>
-
-          {showFeedback && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                <h3 className="text-xl font-semibold mb-4">Exam Feedback</h3>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Rating (1-10)
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={feedbackRating}
-                    onChange={(e) =>
-                      setFeedbackRating(parseInt(e.target.value))
-                    }
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-sm text-gray-600 mt-1">
-                    <span>1</span>
-                    <span className="font-bold text-lg">{feedbackRating}</span>
-                    <span>10</span>
-                  </div>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    value={feedbackMessage}
-                    onChange={(e) => setFeedbackMessage(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    rows={4}
-                    placeholder="Share your feedback about the exam..."
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowFeedback(false)}
-                    className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await Feedback.addFeedback(examId!, {
-                          message: feedbackMessage,
-                          rating: feedbackRating,
-                        });
-                        toast.success("Feedback submitted!");
-                        setShowFeedback(false);
-                      } catch (error) {
-                        toast.error("Failed to submit feedback");
-                      }
-                    }}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                  >
-                    Submit
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <button
+            onClick={() => navigate("/student/project-submit", { replace: true })}
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+          >
+            Back to Assignments
+          </button>
         </div>
       </div>
     );
   }
+
   if (isTerminated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
@@ -742,102 +470,64 @@ export const TakeExam = () => {
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Exam Terminated!
+              Test Terminated!
             </h1>
             <p className="text-gray-600">
-              Your online test has been terminated due to a violation of exam
-              guidelines.
+              Your test has been terminated due to a violation of test guidelines.
             </p>
           </div>
 
-          <div className="space-y-3">
-            <button
-              onClick={() => navigate("/student/exams", { replace: true })}
-              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-            >
-              Back to Exams
-            </button>
-          </div>
+          <button
+            onClick={() => navigate("/student/assignments", { replace: true })}
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+          >
+            Back to Assignments
+          </button>
         </div>
       </div>
     );
   }
+
   if (showInstructions) {
-    let instructions;
-    try {
-      instructions =
-        typeof exam.instructions === "string"
-          ? JSON.parse(exam.instructions)
-          : exam.instructions;
-    } catch {
-      instructions = {};
-    }
     return (
       <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6 sm:p-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6">
-            {instructions.title || "Exam Instructions"}
+            Assignment Test Instructions
           </h1>
-          {instructions.generalInstructions && (
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3">
-                General Instructions
-              </h2>
-              <ul className="list-disc pl-6 space-y-2">
-                {instructions.generalInstructions.map(
-                  (item: string, i: number) => (
-                    <li key={i} className="text-gray-700">
-                      {item}
-                    </li>
-                  ),
-                )}
-              </ul>
-            </div>
-          )}
-          {instructions.examGuidelines && (
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3">Exam Guidelines</h2>
-              <ul className="list-disc pl-6 space-y-2">
-                {instructions.examGuidelines.map((item: string, i: number) => (
-                  <li key={i} className="text-gray-700">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {instructions.examRules && (
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3">Exam Rules</h2>
-              <ul className="list-disc pl-6 space-y-2">
-                {instructions.examRules.map((item: string, i: number) => (
-                  <li key={i} className="text-gray-700">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {instructions.importantNotes && (
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3 text-red-600">
-                Important Notes
-              </h2>
-              <ul className="list-disc pl-6 space-y-2">
-                {instructions.importantNotes.map((item: string, i: number) => (
-                  <li key={i} className="text-gray-700">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3">General Instructions</h2>
+            <ul className="list-disc pl-6 space-y-2">
+              <li className="text-gray-700">Read each question carefully before answering</li>
+              <li className="text-gray-700">You can navigate between questions using Previous/Next buttons</li>
+              <li className="text-gray-700">You can skip questions and return to them later</li>
+              <li className="text-gray-700">Review all your answers before final submission</li>
+            </ul>
+          </div>
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3">Test Guidelines</h2>
+            <ul className="list-disc pl-6 space-y-2">
+              <li className="text-gray-700">The test must be taken in fullscreen mode</li>
+              <li className="text-gray-700">Do not exit fullscreen or switch tabs during the test</li>
+              <li className="text-gray-700">Right-click, copy, and paste are disabled</li>
+              <li className="text-gray-700">Your screen will be monitored for violations</li>
+            </ul>
+          </div>
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3 text-red-600">Important Notes</h2>
+            <ul className="list-disc pl-6 space-y-2">
+              <li className="text-gray-700">You have a maximum of 3 violations allowed</li>
+              <li className="text-gray-700">After 3 violations, the test will be auto-submitted</li>
+              <li className="text-gray-700">Once submitted, you cannot retake the test</li>
+              <li className="text-gray-700">Make sure you have a stable internet connection</li>
+            </ul>
+          </div>
           <div className="mt-8 text-center">
             <button
               onClick={() => setShowInstructions(false)}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-lg font-semibold"
             >
-              Start Exam
+              Start Test
             </button>
           </div>
         </div>
@@ -883,55 +573,26 @@ export const TakeExam = () => {
             ))}
           </div>
         </div>
-        {exam.isDuration && (
-          <div className="mb-4 p-3 bg-red-50 rounded">
-            <p className="text-sm font-semibold text-red-600">Time Left</p>
-            <p className="text-2xl font-bold text-red-600">
-              {formatTime(timeLeft)}
-            </p>
-          </div>
-        )}
         <div className="mb-4 p-3 bg-yellow-50 rounded">
           <p className="text-sm font-semibold text-yellow-600">Violations</p>
           <p className="text-2xl font-bold text-yellow-600">{violations}/3</p>
         </div>
       </div>
       <div
-        className="flex-1 p-4 sm:p-8 relative"
+        className="flex-1 p-4 sm:p-8"
         style={{ filter: isLocked ? "blur(10px)" : "none" }}
       >
-        {cameraActive && (
-          <div className="fixed bottom-4 right-4 z-[9998] pointer-events-none">
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-40 h-32 rounded-lg border-4 border-blue-500 shadow-2xl bg-black object-cover"
-            />
-            <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
-              ● REC
-            </div>
-          </div>
-        )}
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6 sm:p-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold">
               Question {currentQuestion + 1} of {responses.length}
             </h2>
-            <div className="lg:hidden">
-              {exam.isDuration && (
-                <span className="text-red-600 font-bold">
-                  {formatTime(timeLeft)}
-                </span>
-              )}
-            </div>
           </div>
           <div className="mb-6 relative">
             <p className="text-lg mb-4 select-none relative z-10">
               {question.question}
             </p>
-            {exam.testType === "quiz" && question.options && (
+            {(assignmentResponse.assignment.examType === "quiz" || assignmentResponse.assignment.examType === "mcq") && question.options && (
               <div className="space-y-3 relative z-10">
                 {Object.entries(question.options).map(
                   ([key, value]: [string, any]) => (
@@ -955,7 +616,7 @@ export const TakeExam = () => {
                 )}
               </div>
             )}
-            {exam.testType === "summary" && (
+            {assignmentResponse.assignment.examType === "summary" && (
               <div>
                 <textarea
                   value={question.answer}
@@ -992,7 +653,7 @@ export const TakeExam = () => {
                 onClick={handleSubmit}
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
-                Submit Exam
+                Submit Test
               </button>
             ) : (
               <button

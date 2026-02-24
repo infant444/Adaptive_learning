@@ -35,7 +35,7 @@ export class AnalysisServices {
         testType: string;
         questions: any[];
         studentResponses: any[];
-        timeTaken: number;
+        timeTaken?: number;
         totalScore: number;
         durationMinutes?: number;
     }) {

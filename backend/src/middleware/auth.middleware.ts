@@ -15,10 +15,11 @@ export default (req: any, res: any, next: any) => {
         req.user = decoderedUser;
     } catch (error) {
          if (error instanceof TokenExpiredError) {
-      return res.status(300).json({
+       res.status(300).json({
         success: false,
         message: "Token expired"
       });
+      return;
     }
 
     // 🔴 Invalid token

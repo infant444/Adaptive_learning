@@ -172,7 +172,7 @@ IMPORTANT RULES:
 - Mix conceptual and practical questions
 - Include "what-if" scenarios to test adaptability
 
-${questionType === 'mcq' ? `
+${questionType === 'quiz' || questionType === 'mcq' ? `
 For Multiple Choice Questions:
 - Each question must have 4 options (A, B, C, D)
 - Options should be plausible to test real understanding
@@ -331,7 +331,7 @@ export const examAnalysisPrompt = (examData: {
   testType: string;
   questions: any[];
   studentResponses: any[];
-  timeTaken: number;
+  timeTaken?: number;
   totalScore: number;
   durationMinutes?: number;
 }) => `
@@ -341,8 +341,8 @@ EXAM DETAILS:
 - Test Type: ${examData.testType}
 - Total Questions: ${examData.questions.length}
 - Total Score: ${examData.totalScore}
-- Time Allocated: ${examData.durationMinutes ? `${examData.durationMinutes} minutes` : 'No time limit'}
-- Time Taken: ${examData.timeTaken} minutes
+${examData.durationMinutes ? `- Time Allocated: ${examData.durationMinutes} minutes` : ''}
+${examData.timeTaken ? `- Time Taken: ${examData.timeTaken} seconds` : ''}
 
 QUESTIONS AND ANSWERS:
 ${JSON.stringify(examData.questions, null, 2)}
@@ -371,11 +371,12 @@ FOR QUIZ/MCQ TYPE:
    - Identify topics where student struggled most
    - Identify topics where student performed well
    - Note any patterns in mistakes
-
+${examData.timeTaken ? `
 4. TIME MANAGEMENT:
    - Evaluate if time was used efficiently
    - Average time per question
    - Suggest improvements if needed
+` : ''}
 ` : `
 FOR DESCRIPTIVE TYPE:
 1. SCORING (WITH GRACE MARKS):
@@ -404,11 +405,12 @@ FOR DESCRIPTIVE TYPE:
    - Clarity of expression
    - Use of examples and explanations
    - Logical flow and structure
-
+${examData.timeTaken ? `
 4. TIME MANAGEMENT:
    - Evaluate if time was distributed well across questions
    - Identify if any questions were rushed or incomplete
    - Suggest time allocation strategies
+` : ''}
 `}
 
 5. STRENGTHS:
@@ -471,13 +473,13 @@ Return response in valid JSON format:
       "howToImprove": "Specific improvement suggestion"
     }
   ],
-  "timeManagement": {
+  ${examData.timeTaken ? `"timeManagement": {
     "totalTimeAllocated": "${examData.durationMinutes || 0} minutes",
-    "timeTaken": "${examData.timeTaken} minutes",
+    "timeTaken": "${examData.timeTaken} seconds to make as 'MM:SS'",
     "averageTimePerQuestion": "X minutes",
     "efficiency": "Excellent/Good/Needs Improvement",
     "suggestions": ["Time management tip 1", "Time management tip 2"]
-  },
+  },` : ''}
   "strengths": [
     "Strength 1 with specific example",
     "Strength 2 with specific example"

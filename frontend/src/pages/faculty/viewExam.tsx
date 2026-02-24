@@ -3,9 +3,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Exam, Channel, Response } from "../../lib/api";
+import { Exam, Channel, Response, Feedback } from "../../lib/api";
 import toast from "react-hot-toast";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, Star, X, Download } from "lucide-react";
 
 export const ViewExam = () => {
   const { id } = useParams();
@@ -18,16 +18,21 @@ export const ViewExam = () => {
     null,
   );
   const [formData, setFormData] = useState<any>({});
+  const [feedback, setFeedback] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [isShowFeedback, setIsShowFeedback] = useState(false);
   const [facultyReview, setFacultyReview] = useState("");
   const [selectedResponse, setSelectedResponse] = useState("");
+
   useEffect(() => {
     loadExam();
     loadResponses();
     loadChannels();
+    loadFeedback();
   }, [id]);
-
+  const durationX=(duration:any)=>{
+    return `${String(Math.floor(duration / 60)).padStart(2,'0')}: ${String(duration % 60).padStart(2,'0')}`
+  }
   const loadExam = async () => {
     try {
       const res = await Exam.getFacultyByID(id!);
@@ -39,10 +44,10 @@ export const ViewExam = () => {
         durationMinutes: res.data.durationMinutes,
         isStart: res.data.isStart,
         startAt: res.data.startAt
-          ? new Date(res.data.startAt).toISOString().slice(0, 16)
+          ? new Date(new Date(res.data.startAt).getTime() - new Date(res.data.startAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16)
           : "",
         endAt: res.data.endAt
-          ? new Date(res.data.endAt).toISOString().slice(0, 16)
+          ? new Date(new Date(res.data.endAt).getTime() - new Date(res.data.endAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16)
           : "",
         publishType: res.data.publishType,
         organization: res.data.organization,
@@ -65,7 +70,6 @@ export const ViewExam = () => {
       console.error(error);
     }
   };
-
   const loadChannels = async () => {
     try {
       const res = await Channel.getFacultyChannel();
@@ -74,7 +78,14 @@ export const ViewExam = () => {
       console.error(error);
     }
   };
-
+  const loadFeedback = async () => {
+    try {
+      const res = await Feedback.getFeedback(id!);
+      setFeedback(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const handleUpdateDetails = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -108,9 +119,11 @@ export const ViewExam = () => {
   };
   const handleFacultyFeedback = async () => {
     try {
-      await Response.addFacultyFeedback(selectedResponse, { facultyFeedback: facultyReview });
+      await Response.addFacultyFeedback(selectedResponse, {
+        facultyFeedback: facultyReview,
+      });
       setIsShowFeedback(false);
-      setSelectedResponse("")
+      setSelectedResponse("");
       loadResponses();
     } catch (err) {
       toast.error("Failed to submit feedback");
@@ -621,7 +634,36 @@ export const ViewExam = () => {
 
       {activeTab === "responses" && (
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Student Responses</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Student Responses</h2>
+            <button
+              onClick={() => {
+                const csv = [
+                  ['Name', 'Email', 'Score', 'Total', 'Percentage', 'Duration', 'Violations', 'Status'].join(','),
+                  ...responses.map(r => [
+                    r.student?.name || 'Anonymous',
+                    r.student?.email || '',
+                    r.yourScore || 0,
+                    r.totalScore,
+                    r.responseScore || 0,
+                    durationX(r.duration || 0),
+                    r.violations?.length || 0,
+                    r.isTerminated ? 'Terminated' : 'Completed'
+                  ].join(','))
+                ].join('\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${exam.title}_responses.csv`;
+                a.click();
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+          </div>
           {responses.length === 0 ? (
             <p className="text-gray-500">No responses yet</p>
           ) : (
@@ -638,7 +680,8 @@ export const ViewExam = () => {
                         {res.responseScore}%)
                       </p>
                       <p className="text-sm text-gray-600">
-                        Duration: {res.duration} min
+                        Duration: {durationX(res.duration || 0)}
+
                       </p>
                       <p className="text-sm text-gray-600">
                         Violations: {res.violations?.length || 0}
@@ -658,12 +701,12 @@ export const ViewExam = () => {
                       </button>
                       <button
                         onClick={() => {
-                          if(!res.facultyReview){
+                          if (!res.facultyReview) {
                             setIsShowFeedback(true);
-                        setSelectedResponse(res.id)}
-                        else{
-                          toast.error("Feedback already added")
-                        }
+                            setSelectedResponse(res.id);
+                          } else {
+                            toast.error("Feedback already added");
+                          }
                         }}
                         className="px-4 py-2 bg-gray-400 text-black rounded-lg hover:bg-gray-500"
                       >
@@ -716,9 +759,20 @@ export const ViewExam = () => {
               </div>
             </div>
           )}
+          <div>
+          <h2 className="text-xl font-semibold mb-4">Student Feedback</h2>
+            {feedback && feedback.map((fbd) => (
+              <div key={fbd.responseId} className="border p-4 rounded-lg mb-2">
+                <p className="font-medium flex">
+                  {fbd.student.name || "Anonymous"} |<span className="flex ml-2 font-bold">{fbd.rating}<Star className="mt-0.5" size={18}/></span>
+                </p>
+                <p className="text-sm text-gray-600">{fbd.message}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
-      {isShowFeedback&&
+      {isShowFeedback && (
         <div className="absolute z-40 bg-black/30 h-full w-full top-0 left-0 flex flex-col justify-center items-center">
           <div className="bg-white/90 p-6 rounded-lg shadow-lg lg:w-120 w-96 ">
             <div className="flex justify-between">
@@ -731,22 +785,32 @@ export const ViewExam = () => {
               />
             </div>
             <div>
-           <textarea  
-           value={facultyReview}
-              onChange={(e) =>
-                setFacultyReview(e.target.value)
-              }
-              className="w-full px-3 py-2 border rounded-lg"
-              rows={6}
-              required/>
+              <textarea
+                value={facultyReview}
+                onChange={(e) => setFacultyReview(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg"
+                rows={6}
+                required
+              />
             </div>
             <div className="flex gap-4 justify-end">
-              <button onClick={()=>setIsShowFeedback(false)} className="text-black bg-gray-200 hover:bg-gray-300 rounded-sm px-3 py-2">Cancel</button>
-              <button onClick={handleFacultyFeedback} className="text-white bg-purple-600 hover:bg-purple-700 rounded-sm px-3 py-2" disabled={!facultyReview}>Submit</button>
+              <button
+                onClick={() => setIsShowFeedback(false)}
+                className="text-black bg-gray-200 hover:bg-gray-300 rounded-sm px-3 py-2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFacultyFeedback}
+                className="text-white bg-purple-600 hover:bg-purple-700 rounded-sm px-3 py-2"
+                disabled={!facultyReview}
+              >
+                Submit
+              </button>
             </div>
           </div>
         </div>
-      }
+      )}
     </div>
   );
 };

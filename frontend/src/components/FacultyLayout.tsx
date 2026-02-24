@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Outlet, Link, useLocation } from 'react-router-dom';
@@ -88,10 +89,10 @@ export const FacultyLayout = () => {
             </button>
 
             <div className="flex items-center space-x-4 ml-4">
-              <button className="relative p-2 hover:bg-gray-100 rounded-lg">
+              {/* <button className="relative p-2 hover:bg-gray-100 rounded-lg">
                 <Bell className="w-6 h-6 text-gray-600" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+              </button> */}
               <div className="flex items-center space-x-3">
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-900">{user?.name}</p>
