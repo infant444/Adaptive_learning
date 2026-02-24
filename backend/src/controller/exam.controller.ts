@@ -244,7 +244,7 @@ export class ExamController {
         }
     }
     // Get Exams Student
-    static async ExploreExams(req: Request, res: Response, next: NextFunction) {
+    static async ExploreExams(req: any, res: Response, next: NextFunction) {
         try {
             const exams = await prisma.exam.findMany(
                 {
@@ -290,6 +290,25 @@ export class ExamController {
                     }
                 }
             );
+            const userId=req.user.id;
+             const ExamWithStatus = await Promise.all(
+                exams.map(async (exam) => {
+                    const response = await prisma.response.findFirst({
+                        where: {
+                            examId: exam.id,
+                            studentId: userId
+                        }
+                    });
+                    return {
+                        ...exam,
+                        status: response?.response ? "completed" : exam.isStart == true && exam.endAt && new Date(exam.endAt) < new Date() ? "expire" : "pending",
+                        yourScore: response?.yourScore || 0,
+                        isAnalysis: response?.analyses || false,
+                        responseId:response?.id||''
+                    };
+                })
+            );
+            res.json(ExamWithStatus);
             // console.log(exams);
             res.json(exams);
         } catch (err) {
@@ -320,6 +339,7 @@ export class ExamController {
                     createdById: true
                 }
             });
+            
             res.json(exam);
         } catch (err) {
             next(err)
@@ -335,16 +355,36 @@ export class ExamController {
                     }
                 }, select: {
                     id: true
-                }
+                },
+                
             })
             if (channelId.length == 0) {
                 throw { status: 400, message: "No Exam is available for you" }
             }
             const exams = await prisma.exam.findMany({
                 where: {
-                    channelId: {
-                        in: channelId.map(c => c.id)
+                    AND: [{
+                        channelId: {
+                            in: channelId.map(c => c.id)
+                        }
+                    },
+                    {
+                        OR: [
+                            {
+                                isStart: false
+                            },
+                            {
+                                endAt: {
+                                    gt: new Date()
+                                }
+                            }
+                        ]
                     }
+                    ]
+
+                },
+                orderBy:{
+                    createdAt:"desc"
                 }
             })
             const ExamWithStatus = await Promise.all(
@@ -359,7 +399,9 @@ export class ExamController {
                         ...exam,
                         status: response?.response ? "completed" : exam.isStart == true && exam.endAt && new Date(exam.endAt) < new Date() ? "expire" : "pending",
                         yourScore: response?.yourScore || 0,
-                        isAnalysis: response?.analyses || false
+                        isAnalysis: response?.analyses || false,
+                        responseId:response?.id||''
+
                     };
                 })
             );
@@ -390,6 +432,9 @@ export class ExamController {
                     organization: true,
                     channelId: true,
                     createdById: true
+                },
+                orderBy: {
+                    createdAt: "desc"
                 }
             });
             if (req.user.role == "student") {
@@ -407,7 +452,7 @@ export class ExamController {
                             status: response?.response ? "completed" : exam.isStart == true && exam.endAt && new Date(exam.endAt) < new Date() ? "expire" : "pending",
                             yourScore: response?.yourScore || 0,
                             isAnalysis: response?.analyses || false,
-                            responseId:response?.id||''
+                            responseId: response?.id || ''
                         };
                     })
                 );

@@ -116,6 +116,7 @@ export const TakeExam = () => {
   const [cameraActive, setCameraActive] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
   const [forcetimeout,setForceTimeout]=useState(false)
+  const [showReview, setShowReview] = useState(false);
   useEffect(() => {
     fetchExam();
     return () => {
@@ -245,13 +246,10 @@ export const TakeExam = () => {
     if (!exam?.isDuration) return;
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1) {
+        if (prev <= 0) {
+          clearInterval(timerRef.current);
           setForceTimeout(true);
-          console.log(prev)
-          if (!isSubmitting) {
-            handleSubmit();
-            console.log("Auto submitting exam")
-          }
+          handleReviewPage();
           return 0;
         }
         return prev - 1;
@@ -396,6 +394,16 @@ export const TakeExam = () => {
       setCurrentQuestion(currentQuestion + 1);
     }
   };
+  const handleReviewPage = () => {
+    setIsLocked(false);
+    stopCamera();
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
+    if (cleanupRef.current) cleanupRef.current();
+    exitFullscreen();
+    setShowReview(true);
+  };
+
   const handleViolationSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
@@ -429,24 +437,8 @@ export const TakeExam = () => {
   const handleSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    const unanswered = responses.filter(
-      (r) => r.status === "notanswered" || r.status === "skipped",
-    );
-    if (unanswered.length > 0 && timeLeft > 0) {
-      const confirm = window.confirm(
-        `You have ${unanswered.length} unanswered/skipped questions. Submit anyway?`,
-      );
-      if (!confirm) return;
-    }
-
-    setIsLocked(false);
-    stopCamera();
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
-    if (cleanupRef.current) cleanupRef.current();
-    exitFullscreen();
     try {
-      const duration = forcetimeout?(exam?.durationMinutes*60 || 0):(Math.floor((Date.now() - startTime) / 1000));
+      const duration = forcetimeout ? (exam?.durationMinutes * 60 || 0) : Math.floor((Date.now() - startTime) / 1000);
       await Exam.submitResponse(examId!, {
         response: responses,
         duration,
@@ -463,6 +455,7 @@ export const TakeExam = () => {
       setIsCompleted(true);
     } catch (error) {
       toast.error("Failed to submit exam");
+      setIsSubmitting(false);
     }
   };
 
@@ -762,6 +755,94 @@ export const TakeExam = () => {
       </div>
     );
   }
+  if (showReview) {
+    const answered = responses.filter((r) => r.status === "answered").length;
+    const skipped = responses.filter((r) => r.status === "skipped").length;
+    const notAnswered = responses.filter((r) => r.status === "notanswered").length;
+
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <div className="w-64 bg-white shadow-lg p-4">
+          <h3 className="font-semibold mb-4">Review Answers</h3>
+          <div className="grid grid-cols-5 gap-2 mb-6">
+            {responses.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentQuestion(i)}
+                className={`w-10 h-10 rounded text-sm font-semibold ${
+                  i === currentQuestion
+                    ? "bg-blue-600 text-white"
+                    : responses[i].status === "answered"
+                      ? "bg-green-500 text-white"
+                      : responses[i].status === "skipped"
+                        ? "bg-orange-400 text-white"
+                        : "bg-gray-200"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+          <div className="bg-gray-50 rounded p-3 mb-4">
+            <p className="text-sm text-gray-600">Answered: <span className="font-bold text-green-600">{answered}</span></p>
+            <p className="text-sm text-gray-600">Skipped: <span className="font-bold text-orange-600">{skipped}</span></p>
+            <p className="text-sm text-gray-600">Not Answered: <span className="font-bold text-gray-600">{notAnswered}</span></p>
+          </div>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold disabled:opacity-50"
+          >
+            {isSubmitting ? "Submitting..." : "Final Submit"}
+          </button>
+        </div>
+        <div className="flex-1 p-8">
+          <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
+            <h2 className="text-xl font-semibold mb-4">
+              Question {currentQuestion + 1} of {responses.length}
+            </h2>
+            <p className="text-lg mb-4">{responses[currentQuestion].question}</p>
+            {exam.testType === "quiz" && responses[currentQuestion].options && (
+              <div className="space-y-3">
+                {Object.entries(responses[currentQuestion].options).map(
+                  ([key, value]: [string, any]) => (
+                    <div
+                      key={key}
+                      className={`p-4 border-2 rounded-lg ${responses[currentQuestion].answer === key ? "border-blue-600 bg-blue-50" : "border-gray-300"}`}
+                    >
+                      {key}. {value}
+                    </div>
+                  ),
+                )}
+              </div>
+            )}
+            {exam.testType === "summary" && (
+              <div className="p-4 border-2 rounded-lg bg-gray-50">
+                <p className="whitespace-pre-wrap">{responses[currentQuestion].answer || "No answer provided"}</p>
+              </div>
+            )}
+            <div className="flex justify-between mt-6">
+              <button
+                onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
+                disabled={currentQuestion === 0}
+                className="px-6 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentQuestion(Math.min(responses.length - 1, currentQuestion + 1))}
+                disabled={currentQuestion === responses.length - 1}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (showInstructions) {
     let instructions;
     try {
@@ -989,10 +1070,10 @@ export const TakeExam = () => {
             </button>
             {currentQuestion === responses.length - 1 ? (
               <button
-                onClick={handleSubmit}
+                onClick={handleReviewPage}
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
-                Submit Exam
+                Review & Submit
               </button>
             ) : (
               <button

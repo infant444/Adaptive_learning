@@ -29,9 +29,8 @@ export class ResponseController{
                 res.json({message: "Response already submitted for this exam"});
                 return
             }
-            console.log(check)
-            console.log("duration");
-            const durationX=(durationMinutes*60)<=duration?duration:(durationMinutes*60);
+            const durationX=(durationMinutes*60)>=duration?duration:(durationMinutes*60);
+            // console.log(durationX)
             const analysis = await AnalysisServices.analyzeExam({
                 testType,
                 questions,

@@ -116,4 +116,33 @@ export class QuestionServices {
 
     return instructions;
   }
+
+  static async analyzeProject(file: any) {
+    const uploadedFile = await fileManager.uploadFile(file.buffer, {
+      mimeType: file.mimetype,
+      displayName: file.originalname
+    });
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash"
+    });
+
+    const result = await model.generateContent([
+      {
+        text: projectAnalysisPrompt()
+      },
+      {
+        fileData: {
+          fileUri: uploadedFile.file.uri,
+          mimeType: uploadedFile.file.mimeType
+        }
+      }
+    ]);
+
+    const response = result.response.text();
+    const cleanJsonString = response.trim().replace(/```json/g, '').replace(/```/g, '').trim();
+    const analysis = JSON.parse(cleanJsonString);
+
+    return analysis;
+  }
 }
