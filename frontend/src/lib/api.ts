@@ -14,7 +14,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (setLoadingGlobal) setLoadingGlobal(true);
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('adaptive-token');
     if (token) {
       config.headers.access_token = token;
     }
@@ -35,8 +35,8 @@ api.interceptors.response.use(
     if (setLoadingGlobal) setLoadingGlobal(false);
     if (error.response?.status === 401) {
       console.log(error.response);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      localStorage.removeItem('adaptive-token');
+      localStorage.removeItem('adaptive-user');
       window.location.href = '/login';
     }
     return Promise.reject(error);

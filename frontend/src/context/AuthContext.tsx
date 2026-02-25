@@ -29,8 +29,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    const token = localStorage.getItem('adaptive-token');
+    const userData = localStorage.getItem('adaptive-user');
     if (token && userData) {
       setUser(JSON.parse(userData));
     }
@@ -41,8 +41,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const response = await api.post('/auth/login', { email, password });
     const { token, ...userData } = response.data;
     console.log(response.data);
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('adaptive-token', token);
+    localStorage.setItem('adaptive-user', JSON.stringify(userData));
     setUser(userData);
     return userData;
   };
@@ -50,15 +50,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signup = async (userData: any) => {
     const response = await api.post('/auth/register', userData);
     const { token, ...user } = response.data;
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('adaptive-token', token);
+    localStorage.setItem('adaptive-user', JSON.stringify(user));
     setUser(user);
   };
 
   const logout = async() => {
     await api.put('/auth/logout');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('adaptive-token');
+    localStorage.removeItem('adaptive-user');
     setUser(null);
   };
 

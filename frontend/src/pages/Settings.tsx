@@ -35,7 +35,7 @@ export const Settings = () => {
     e.preventDefault();
     try {
       const res = await User.updateMyself(formData);
-      localStorage.setItem("user", JSON.stringify(res.data));
+      localStorage.setItem("adaptive-user", JSON.stringify(res.data));
       setUser(res.data);
       toast.success("Profile updated successfully");
     } catch (err) {

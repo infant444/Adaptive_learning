@@ -157,7 +157,7 @@ export const ChannelDetail = () => {
     try {
       const response = await Channel.getById(id!);
       setChannel(response.data);
-      console.log(response.data);
+      // console.log(response.data);
       setHost(response.data.faculty);
     } catch (err) {
       console.error(err);
@@ -166,7 +166,7 @@ export const ChannelDetail = () => {
   const fetchExams = async () => {
     try {
       const response = await Exam.getChannel(id!);
-      setExams(response.data);
+      // setExams(response.data);
       console.log(response.data);
     } catch (err) {
       console.error(err);
@@ -176,7 +176,7 @@ export const ChannelDetail = () => {
     try {
       const response = await Assignment.getForChannel(id!);
       setWork(response.data);
-      console.log(response.data);
+      // console.log(response.data);
     } catch (err) {
       console.error(err);
     }
@@ -580,7 +580,9 @@ export const ChannelDetail = () => {
                             <div>
                               {exam.status == "completed" ? (
                                 <div className="flex flex-col gap-3">
+                                  {`  Score: ${exam.yourScore}/${exam.totalScore}`}
                                   <div className="w-full sm:w-auto px-4 py-2 bg-green-100 text-green-700 rounded-lg text-center text-sm sm:text-base font-semibold">
+
                                     completed
                                   </div>
                                   {exam.responseId && (

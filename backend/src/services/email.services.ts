@@ -42,7 +42,7 @@ export class EmailServices {
         };
         return mailSenderBulk(emailBody, `Invitation to Join ${group} Channel`, email);
     }
-    static sendExamInvite(quizTitle: string, examId: string, email: string[], channel: string, isStart: boolean, startAt: string,domain:string) {
+    static sendExamInvite(quizTitle: string, examId: string, email: string[], channel: string, isStart: boolean, startAt: string,domainX:string) {
         const startInfo = isStart 
             ? `The exam will start on ${new Date(startAt).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}.`
             : 'The exam is available now and you can start anytime.';
@@ -72,7 +72,7 @@ export class EmailServices {
                         },
                         {
                             item: 'Domain',
-                            description: domain
+                            description: domainX
                         },
                         {
                             item: 'Channel',

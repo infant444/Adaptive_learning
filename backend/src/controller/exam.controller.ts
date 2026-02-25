@@ -381,11 +381,27 @@ export class ExamController {
                         ]
                     }
                     ]
-
                 },
                 orderBy:{
                     createdAt:"desc"
-                }
+                },
+                select: {
+                    id: true,
+                    title: true,
+                    domain: true,
+                    questionCount: true,
+                    isDuration: true,
+                    durationMinutes: true,
+                    isStart: true,
+                    startAt: true,
+                    endAt: true,
+                    testType: true,
+                    publishType: true,
+                    organization: true,
+                    channelId: true,
+                    totalScore:true,
+                    createdById: true
+                },
             })
             const ExamWithStatus = await Promise.all(
                 exams.map(async (exam) => {
@@ -431,6 +447,7 @@ export class ExamController {
                     publishType: true,
                     organization: true,
                     channelId: true,
+                    totalScore:true,
                     createdById: true
                 },
                 orderBy: {
