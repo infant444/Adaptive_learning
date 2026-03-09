@@ -166,7 +166,7 @@ export const ChannelDetail = () => {
   const fetchExams = async () => {
     try {
       const response = await Exam.getChannel(id!);
-      // setExams(response.data);
+      setExams(response.data);
       console.log(response.data);
     } catch (err) {
       console.error(err);
