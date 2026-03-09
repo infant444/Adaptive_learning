@@ -23,7 +23,7 @@ export class EmailServices {
         return mailSender(emailBody, "Your Verification Code", email);
 
     }
-    static sendInvite(group: string, id: string, facultyName: string, college: string,email:string[]) {
+    static sendInvite(group: string, id: string, facultyName: string, college: string, email: string[]) {
         const emailBody = {
             body: {
                 greeting: "Dear Student,",
@@ -42,8 +42,8 @@ export class EmailServices {
         };
         return mailSenderBulk(emailBody, `Invitation to Join ${group} Channel`, email);
     }
-    static sendExamInvite(quizTitle: string, examId: string, email: string[], channel: string, isStart: boolean, startAt: string,domainX:string) {
-        const startInfo = isStart 
+    static sendExamInvite(quizTitle: string, examId: string, email: string[], channel: string, isStart: boolean, startAt: string, domainX: string) {
+        const startInfo = isStart
             ? `The exam will start on ${new Date(startAt).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}.`
             : 'The exam is available now and you can start anytime.';
 
@@ -55,7 +55,7 @@ export class EmailServices {
                     startInfo
                 ],
                 action: {
-                    instructions: isStart 
+                    instructions: isStart
                         ? "The exam will be accessible at the scheduled time. Click below to view details:"
                         : "Click the button below to start the exam:",
                     button: {
@@ -97,6 +97,56 @@ export class EmailServices {
         };
         return mailSenderBulk(emailBody, `Exam Invitation: ${quizTitle}`, email);
     }
+    static sendProjectInvite(assignmentTitle: string, assignmentId: string, email: string[], channel: string, lastDate: string, projectType: string) {
+        const emailBody = {
+            body: {
+                greeting: "Dear Student,",
+                intro: [
+                    `You have been assigned a new project "${assignmentTitle}" in the ${channel} channel.`,
+                    `Submission deadline: ${new Date(lastDate).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}`
+                ],
+                action: {
+                    instructions: "Click the button below to view assignment details and submit your project:",
+                    button: {
+                        color: "#2F80ED",
+                        text: "View Assignment",
+                        link: `${domain}/assignment/${assignmentId}`
+                    }
+                },
+                table: {
+                    data: [
+                        {
+                            item: 'Assignment Title',
+                            description: assignmentTitle
+                        },
+                        {
+                            item: 'Project Type',
+                            description: projectType
+                        },
+                        {
+                            item: 'Channel',
+                            description: channel
+                        },
+                        {
+                            item: 'Deadline',
+                            description: new Date(lastDate).toLocaleString()
+                        }
+                    ]
+                },
+                outro: [
+                    "Important Instructions:",
+                    "• Upload your project document before the deadline",
+                    "• Ensure all required files are included",
+                    "• Review submission guidelines carefully",
+                    "• Contact faculty if you have any questions",
+                    "",
+                    "Best of luck with your project!"
+                ]
+            },
+            signature: `Best Regards,\n${channel} Team\nSancilo Platform`
+        };
+        return mailSenderBulk(emailBody, `New Assignment: ${assignmentTitle}`, email);
+    }
 }
 // email Send process
 const mailSender = async (template: any, subject: string, email: string): Promise<Boolean> => {
@@ -124,8 +174,8 @@ const mailSenderBulk = async (template: any, subject: string, email: string[]): 
     const mail = mailGenerator.generate(template);
     let message = {
         from: `" ${company_name}" <infant0475@gmail.com>`,
-         to: "undisclosed-recipients:;",
-        bcc:email,
+        to: "undisclosed-recipients:;",
+        bcc: email,
         subject: subject,
         html: mail,
     }

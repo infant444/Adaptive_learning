@@ -77,38 +77,76 @@ Format:
   "totalScore": 100
 }
 `;
-
 export const projectAnalysisPrompt = () => `
-Analyze the uploaded project document and provide a comprehensive summary for faculty review.
+Analyze the uploaded project document and provide a comprehensive, faculty-friendly summary with detailed insights.
 
 ANALYSIS REQUIREMENTS:
+
 1. PROJECT OVERVIEW:
-   - What is the project about?
-   - Main objectives and goals
-   - Problem statement being addressed
+   - Extract project title and provide a clear, concise description (3-5 sentences)
+   - Explain the project in simple terms that any faculty member can understand
+   - List main objectives and goals
+   - Identify the problem statement and real-world relevance
+   - Mention target users or beneficiaries
+   - Highlight innovation or unique aspects
 
 2. TECHNICAL DETAILS:
-   - Technologies/frameworks/tools used
-   - Programming languages
-   - Architecture/design patterns
-   - Key features implemented
+   - List all technologies, frameworks, and tools used
+   - Identify programming languages and versions
+   - Describe system architecture and design patterns
+   - Explain key features and functionalities
+   - Mention database design and data flow
+   - Note any APIs, third-party integrations, or libraries
+   - Identify security measures implemented
 
-3. AI-GENERATED CONTENT DETECTION:
-   - Estimate percentage of content that appears to be AI-generated or copy-pasted
-   - Identify sections with generic/template-like content
-   - Flag inconsistencies in writing style or technical depth
-   - Assess originality and student understanding
+3. PROJECT SCOPE & IMPLEMENTATION:
+   - Modules or components developed
+   - Development methodology used (Agile, Waterfall, etc.)
+   - Testing approaches mentioned
+   - Deployment strategy if specified
+   - Scalability and performance considerations
 
-4. QUALITY ASSESSMENT:
-   - Completeness of documentation
-   - Technical accuracy
-   - Code quality indicators (if code is present)
-   - Proper citations and references
+4. AI-GENERATED CONTENT DETECTION (Liberal Analysis):
+   IMPORTANT: Be liberal and fair in assessment. Many students use AI as a writing assistant, which is acceptable.
+   - Only flag content as AI-generated if there are STRONG indicators:
+     * Overly generic descriptions with no project-specific details
+     * Inconsistent technical depth (very detailed in some areas, vague in others)
+     * Template-like structure with placeholder-style content
+     * Contradictory information or logical inconsistencies
+     * Lack of personal insights or decision-making rationale
+   - DO NOT penalize for:
+     * Well-structured writing or proper grammar
+     * Use of technical terminology
+     * Professional formatting
+     * Clear and concise explanations
+   - Estimate percentage conservatively (focus on obvious cases only)
+   - Provide specific examples when flagging sections
+   - Assess student's genuine understanding based on technical details and implementation specifics
 
-5. RECOMMENDATIONS:
-   - Areas needing improvement
-   - Questions faculty should ask the student
-   - Suggestions for verification of understanding
+5. QUALITY ASSESSMENT:
+   - Completeness: Check if all standard sections are present (introduction, methodology, implementation, results, conclusion)
+   - Technical accuracy: Verify if technical claims are sound and feasible
+   - Documentation quality: Assess clarity, structure, and professionalism
+   - Code quality: If code snippets present, evaluate readability and best practices
+   - Visual aids: Note presence of diagrams, flowcharts, screenshots
+   - Citations and references: Check if external sources are properly credited
+   - Depth of explanation: Evaluate if concepts are explained adequately
+
+6. VIVA QUESTIONS:
+   Generate 10-15 targeted viva questions that:
+   - Test deep understanding of the project
+   - Cover different aspects (technical, implementation, design decisions)
+   - Include "why" and "how" questions, not just "what"
+   - Probe decision-making and problem-solving approach
+   - Include scenario-based questions
+   - Mix easy, medium, and challenging questions
+
+7. RECOMMENDATIONS:
+   - Specific areas needing improvement or clarification
+   - Red flags or concerns faculty should investigate
+   - Strengths and positive aspects to acknowledge
+   - Suggestions for project enhancement
+   - Verification methods to confirm student understanding
 
 Return response in valid JSON format only.
 
@@ -116,41 +154,72 @@ Format:
 {
   "projectOverview": {
     "title": "Project title",
-    "description": "Brief description",
-    "objectives": ["Objective 1", "Objective 2"],
-    "problemStatement": "Problem being solved"
+    "description": "Clear 3-5 sentence description understandable by any faculty",
+    "objectives": ["Objective 1", "Objective 2", "Objective 3"],
+    "problemStatement": "Problem being solved with real-world context",
+    "targetUsers": "Who will use this project",
+    "innovation": "What makes this project unique or innovative"
   },
   "technicalDetails": {
-    "technologies": ["Tech 1", "Tech 2"],
+    "technologies": ["Tech 1", "Tech 2", "Tech 3"],
     "languages": ["Language 1", "Language 2"],
-    "architecture": "Architecture description",
-    "keyFeatures": ["Feature 1", "Feature 2"]
+    "architecture": "Detailed architecture description",
+    "keyFeatures": ["Feature 1 with brief explanation", "Feature 2 with brief explanation"],
+    "database": "Database technology and design approach",
+    "integrations": ["API 1", "Library 1"],
+    "securityMeasures": ["Security measure 1", "Security measure 2"]
+  },
+  "implementationDetails": {
+    "modules": ["Module 1", "Module 2"],
+    "methodology": "Development methodology used",
+    "testing": "Testing approach mentioned",
+    "deployment": "Deployment strategy if specified"
   },
   "aiContentAnalysis": {
-    "estimatedAIGeneratedPercentage": 30,
+    "estimatedAIGeneratedPercentage": 15,
+    "analysisNote": "Liberal assessment focusing only on strong indicators",
     "suspiciousSections": [
       {
         "section": "Section name",
-        "reason": "Why it appears AI-generated",
-        "confidence": "high/medium/low"
+        "reason": "Specific reason with evidence",
+        "confidence": "high/medium/low",
+        "example": "Specific text excerpt if applicable"
       }
     ],
-    "originalityScore": 70,
-    "writingStyleConsistency": "consistent/inconsistent"
+    "originalityScore": 85,
+    "understandingIndicators": [
+      "Indicator 1 showing genuine understanding",
+      "Indicator 2 showing genuine understanding"
+    ],
+    "writingStyleConsistency": "consistent/inconsistent",
+    "technicalDepthAssessment": "Assessment of technical depth and specificity"
   },
   "qualityAssessment": {
     "completeness": 85,
     "technicalAccuracy": 80,
     "documentationQuality": "good/average/poor",
     "codeQuality": "good/average/poor/not-applicable",
-    "properCitations": true
+    "visualAids": "present/absent",
+    "properCitations": true,
+    "depthOfExplanation": "thorough/adequate/superficial",
+    "overallProfessionalism": 80
   },
+  "vivaQuestions": [
+    {
+      "question": "Viva question 1",
+      "category": "technical/implementation/design/problem-solving",
+      "difficulty": "easy/medium/hard",
+      "purpose": "What this question tests"
+    }
+  ],
   "recommendations": {
-    "areasForImprovement": ["Area 1", "Area 2"],
-    "questionsForStudent": ["Question 1", "Question 2"],
-    "verificationSuggestions": ["Suggestion 1", "Suggestion 2"]
+    "strengths": ["Strength 1", "Strength 2"],
+    "areasForImprovement": ["Area 1 with specific suggestion", "Area 2 with specific suggestion"],
+    "redFlags": ["Concern 1 if any", "Concern 2 if any"],
+    "verificationSuggestions": ["How to verify understanding 1", "How to verify understanding 2"],
+    "enhancementSuggestions": ["Enhancement 1", "Enhancement 2"]
   },
-  "overallAssessment": "Brief overall assessment summary"
+  "overallAssessment": "Comprehensive 4-6 sentence summary covering project quality, student understanding, and final recommendation"
 }
 `;
 
@@ -507,5 +576,150 @@ Return response in valid JSON format:
     "nextSteps": ["Next step 1", "Next step 2"]
   },
   "motivationalMessage": "Warm, encouraging message that acknowledges effort, celebrates strengths, and inspires continued learning. Be specific about what the student did well and express confidence in their ability to improve."
+}
+`;
+
+
+export const projectQuestionAnalysisPrompt = (analysisData: {
+  questions: any[];
+  studentResponses: any[];
+  totalScore: number;
+  projectContext?: string;
+  type?: string;
+}) => `
+You are an experienced faculty member evaluating a student's understanding of their project through Q&A assessment. Provide thorough, constructive, and encouraging feedback.
+
+ASSESSMENT DETAILS:
+- Assessment Type: ${analysisData.type || 'Project Q&A'}
+- Total Questions: ${analysisData.questions.length}
+- Total Score: ${analysisData.totalScore}
+${analysisData.projectContext ? `- Project Context: ${analysisData.projectContext}` : ''}
+
+QUESTIONS:
+${JSON.stringify(analysisData.questions, null, 2)}
+
+STUDENT RESPONSES:
+${JSON.stringify(analysisData.studentResponses, null, 2)}
+
+EVALUATION REQUIREMENTS:
+
+1. SCORING WITH LIBERAL GRACE MARKS:
+   - Evaluate based on conceptual understanding, not just keyword matching
+   - Award marks for:
+     * Correct concepts even with different wording
+     * Partial understanding with relevant explanations
+     * Practical knowledge and real-world application
+     * Logical reasoning and problem-solving approach
+   - Grace marks (up to 30% per question) for:
+     * Demonstrating effort and thought process
+     * Partially correct technical details
+     * Good attempt with minor conceptual gaps
+     * Relevant examples even if incomplete
+   - Calculate total marks and percentage
+
+2. QUESTION-WISE DETAILED FEEDBACK:
+   - What the student understood correctly
+   - Gaps in understanding or missing concepts
+   - Key technical points that should be covered
+   - How the answer demonstrates project knowledge
+   - Specific suggestions for improvement
+
+3. PROJECT UNDERSTANDING ASSESSMENT:
+   - Depth of technical knowledge shown
+   - Ability to explain design decisions
+   - Understanding of implementation details
+   - Awareness of challenges and solutions
+   - Grasp of project architecture and flow
+
+4. CONCEPTUAL ANALYSIS:
+   - Strong areas of understanding
+   - Weak areas needing reinforcement
+   - Misconceptions to address
+   - Topics requiring deeper study
+
+5. STRENGTHS IDENTIFICATION:
+   - Technical concepts well understood
+   - Good explanations and clarity
+   - Practical insights demonstrated
+   - Problem-solving abilities shown
+
+6. IMPROVEMENT ROADMAP:
+   - Specific technical topics to review
+   - Concepts needing clarification
+   - Recommended study resources
+   - Practice exercises or tasks
+   - Areas to explore deeper
+
+7. MOTIVATIONAL FEEDBACK:
+   - Acknowledge understanding and effort
+   - Encourage continued learning
+   - Build confidence in technical abilities
+   - Inspire curiosity and exploration
+
+IMPORTANT GUIDELINES:
+- Be encouraging and supportive in tone
+- Focus on learning and understanding, not just scores
+- Provide actionable, specific feedback
+- Award grace marks liberally for genuine effort
+- Evaluate understanding, not memorization
+- Consider project complexity in evaluation
+- Balance constructive criticism with positive reinforcement
+
+Return response in valid JSON format:
+{
+  "scoreAnalysis": {
+    "totalMarks": ${analysisData.totalScore},
+    "marksObtained": 0,
+    "graceMarksAwarded": 0,
+    "percentage": 0,
+    "grade": "A/B/C/D/F",
+    "performanceLevel": "Excellent/Good/Average/Needs Improvement"
+  },
+  "questionWiseAnalysis": [
+    {
+      "questionNumber": 1,
+      "question": "Question text",
+      "studentAnswer": "Student's answer",
+      "expectedKeyPoints": ["Key point 1", "Key point 2"],
+      "marksAwarded": 0,
+      "maxMarks": 0,
+      "graceMarksAwarded": 0,
+      "feedback": "Detailed constructive feedback",
+      "strengthsInAnswer": ["What was good"],
+      "areasToImprove": ["What needs work"]
+    }
+  ],
+  "projectUnderstanding": {
+    "technicalDepth": "Excellent/Good/Average/Needs Improvement",
+    "conceptualClarity": "Excellent/Good/Average/Needs Improvement",
+    "practicalKnowledge": "Excellent/Good/Average/Needs Improvement",
+    "overallComprehension": "Assessment of overall project understanding"
+  },
+  "conceptualAnalysis": {
+    "strongConcepts": ["Concept 1 well understood", "Concept 2 well understood"],
+    "weakConcepts": ["Concept 1 needs work", "Concept 2 needs work"],
+    "misconceptions": ["Misconception 1 to address", "Misconception 2 to address"]
+  },
+  "strengths": [
+    "Specific strength 1 with example from answers",
+    "Specific strength 2 with example from answers"
+  ],
+  "improvementRoadmap": [
+    {
+      "area": "Technical topic or concept",
+      "currentUnderstanding": "What student currently knows",
+      "targetUnderstanding": "What should be achieved",
+      "actionSteps": ["Step 1", "Step 2"],
+      "resources": ["Resource 1", "Resource 2"],
+      "priority": "High/Medium/Low"
+    }
+  ],
+  "overallFeedback": {
+    "summary": "Comprehensive assessment of project knowledge",
+    "keyTakeaways": ["Takeaway 1", "Takeaway 2"],
+    "nextSteps": ["Next step 1", "Next step 2"],
+    "encouragement": "Specific encouraging remarks based on performance"
+  },
+  "motivationalMessage": "Warm, personalized message that acknowledges the student's effort, highlights their understanding, addresses gaps constructively, and inspires continued learning and project improvement."
 }
 `;

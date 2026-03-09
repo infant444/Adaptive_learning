@@ -5,6 +5,7 @@ import { QuestionServices } from "../services/question.services";
 import { uploadSingle } from "../config/multer.config";
 import { supabase } from "../config/supabase.config";
 import { AnalysisServices } from "../services/analysis.services";
+import { EmailServices } from "../services/email.services";
 
 
 export class AssignmentController {
@@ -48,6 +49,36 @@ export class AssignmentController {
                     createdById: createdBy
                 }
             });
+                const channelData = await prisma.channel.findUnique({
+                    where: {
+                        id: channelId
+                    },
+                    select: {
+                        name: true,
+                        teamMembers: true
+                    }
+                });
+                 if (channelData && channelData.teamMembers.length > 0) {
+                    const users = await prisma.user.findMany({
+                        where: {
+                            id: {
+                                in: channelData.teamMembers
+                            }
+                        },
+                        select: {
+                            email: true
+                        }
+                    });
+                    const emailList = users.map(user => user.email);
+                    await EmailServices.sendProjectInvite(
+                        title,
+                        assignment.id,
+                        emailList,
+                        channelData.name,
+                        lastDate,
+                        projectType
+                    );
+                }
             res.send(assignment);
         } catch (err) {
             next(err)
@@ -369,12 +400,12 @@ export class AssignmentController {
                     ? JSON.parse(assignmentResponse.question)
                     : assignmentResponse?.question;
                 const questions = (parsedQuestion as any)?.questions || [];
-                analyses = await AnalysisServices.analyzeExam({
-                    testType: assignmentResponse?.assignment?.examType || 'quiz',
-                    questions,
-                    studentResponses: response,
-                    totalScore: assignmentResponse?.totalScore || 0,
-                });
+                  analyses = await AnalysisServices.analyzeProjectQuestions({
+                        questions,
+                        studentResponses: response,
+                        totalScore: assignmentResponse?.totalScore || 0,
+                        type:assignmentResponse?.assignment?.projectType || 'quiz'
+                    });
             }
             const updatedResponse = await prisma.assignmentResponse.updateMany({
                 where: {

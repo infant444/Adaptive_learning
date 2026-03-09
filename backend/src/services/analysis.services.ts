@@ -1,5 +1,5 @@
 import { fileManager, genAI } from "../config/gemini.config";
-import { projectAnalysisPrompt, examAnalysisPrompt } from "../constant/prompt";
+import { projectAnalysisPrompt, examAnalysisPrompt, projectQuestionAnalysisPrompt } from "../constant/prompt";
 
 export class AnalysisServices {
     static async analyzeProject(file: any) {
@@ -46,6 +46,29 @@ export class AnalysisServices {
         const result = await model.generateContent([
             {
                 text: examAnalysisPrompt(examData)
+            }
+        ]);
+
+        const response = result.response.text();
+        const cleanJsonString = response.trim().replace(/```json/g, '').replace(/```/g, '').trim();
+        const analysis = JSON.parse(cleanJsonString);
+
+        return analysis;
+    }
+    static async analyzeProjectQuestions(analysisData: {
+        questions: any[];
+        studentResponses: any[];
+        totalScore: number;
+        projectContext?: string;
+        type?:string
+    }) {
+        const model = genAI.getGenerativeModel({
+            model: "gemini-3-flash-preview"
+        });
+
+        const result = await model.generateContent([
+            {
+                text: projectQuestionAnalysisPrompt(analysisData)
             }
         ]);
 
