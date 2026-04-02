@@ -5,7 +5,12 @@ CRITICAL: You MUST generate EXACTLY ${count} questions, no more, no less.
 
 IMPORTANT RULES:
 - Extract questions ONLY from the provided document content
+- Also include the relevant information from the description if it adds necessary context or concepts that are not fully covered in the document but are essential for understanding the questions
+- also include the tables if anything asked related to the examples in the document for nessary tables and example concept to understand the questions much better 
+- Do if possible to include the relevant information from the description in the question itself to make it self-contained and understandable without needing to refer back to the document
+- also do if possible include the example paragraph and table in the question if it is related to the question to make it more clear and understandable for the students
 - DO NOT use fully from external knowledge or information instance use 10%-20% of knowledge taken from external but also it completely relevant to provided document content
+- in the question generation do not use according to the document like any unspecified references must include the relevant information in the question itself to make it self-contained and understandable without needing to refer back to the document
 - Subject: ${subject}
 - Difficulty: ${difficulty}
 - Description: ${description}
@@ -46,6 +51,11 @@ CRITICAL: You MUST generate EXACTLY ${count} questions, no more, no less.
 IMPORTANT RULES:
 - Extract questions ONLY from the provided document content
 - Questions should require detailed explanations and understanding
+- Also include the relevant information from the description if it adds necessary context or concepts that are not fully covered in the document but are essential for understanding the questions
+- also include the tables if anything asked related to the examples in the document for nessary tables and example concept to understand the questions much better 
+- Do if possible to include the relevant information from the description in the question itself to make it self-contained and understandable without needing to refer back to the document
+- also do if possible include the example paragraph and table in the question if it is related to the question to make it more clear and understandable for the students
+- DO NOT use fully from external knowledge or information instance use 10%-20% of knowledge taken from external but also it completely relevant to provided document content
 - Subject: ${subject}
 - Difficulty: ${difficulty}
 - Description: ${description}

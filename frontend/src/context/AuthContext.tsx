@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/set-state-in-effect */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import api from '../lib/api';
+import api, { setLogoutHandler } from '../lib/api';
 
 interface User {
   id: string;
@@ -35,6 +35,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(JSON.parse(userData));
     }
     setLoading(false);
+    
+    setLogoutHandler(logout);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -55,8 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(user);
   };
 
-  const logout = async() => {
-    await api.put('/auth/logout');
+  const logout = () => {
     localStorage.removeItem('adaptive-token');
     localStorage.removeItem('adaptive-user');
     setUser(null);

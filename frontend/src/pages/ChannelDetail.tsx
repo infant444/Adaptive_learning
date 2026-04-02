@@ -600,9 +600,7 @@ export const ChannelDetail = () => {
                                 </div>
                               ) : (
                                 <div>
-                                  {exam.isStart &&
-                                  (!exam.endAt ||
-                                    new Date(exam.endAt) > new Date()) ? (
+                                  {exam.isStart && exam.endAt && new Date(exam.endAt) < new Date() ? (
                                     <div className="w-full sm:w-auto px-4 py-2 bg-red-100 text-red-700 rounded-lg text-center text-sm sm:text-base font-semibold">
                                       Expired
                                     </div>

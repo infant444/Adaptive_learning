@@ -2,9 +2,14 @@
 import axios from 'axios';
 
 let setLoadingGlobal: ((loading: boolean) => void) | null = null;
+let logoutHandler: (() => void) | null = null;
 
 export const setLoadingHandler = (handler: (loading: boolean) => void) => {
   setLoadingGlobal = handler;
+};
+
+export const setLogoutHandler = (handler: () => void) => {
+  logoutHandler = handler;
 };
 
 const api = axios.create({
@@ -34,10 +39,13 @@ api.interceptors.response.use(
   (error) => {
     if (setLoadingGlobal) setLoadingGlobal(false);
     if (error.response?.status === 401) {
-      console.log(error.response);
-      localStorage.removeItem('adaptive-token');
-      localStorage.removeItem('adaptive-user');
-      window.location.href = '/login';
+      if (logoutHandler) {
+        logoutHandler();
+      } else {
+        localStorage.removeItem('adaptive-token');
+        localStorage.removeItem('adaptive-user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
